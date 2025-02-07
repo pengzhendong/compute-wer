@@ -29,6 +29,11 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     install_requires=requirements,
+    entry_points={
+        "console_scripts": [
+            "compute-wer = compute_wer.cli:main",
+        ]
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",

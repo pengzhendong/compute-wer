@@ -32,7 +32,6 @@ def characterize(text, tochar):
         # https://unicodebook.readthedocs.io/unicode.html#unicode-categories
         if cat in {"Zs", "Cn"}:  # space or not assigned
             i += 1
-            continue
         elif cat == "Lo":  # Letter-other (Chinese letter)
             res.append(char)
             i += 1

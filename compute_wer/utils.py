@@ -16,10 +16,10 @@ import unicodedata
 from unicodedata import category, east_asian_width
 
 spacelist = [" ", "\t", "\r", "\n"]
-puncts = ["!", ",", "?", "、", "。", "！", "，", "；", "？", "：", "「", "」", "︰", "『", "』", "《", "》"]
+puncts = ["!", ",", ".", "?", "-", "、", "。", "！", "，", "；", "？", "：", "「", "」", "︰", "『", "』", "《", "》"]
 
 
-def characterize(text):
+def characterize(text, tochar):
     res = []
     i = 0
     length = len(text)
@@ -33,22 +33,25 @@ def characterize(text):
         if cat in {"Zs", "Cn"}:  # space or not assigned
             i += 1
             continue
-        if cat.startswith("L"):  # Letter
+        elif cat == "Lo":  # Letter-other (Chinese letter)
             res.append(char)
             i += 1
-            continue
-        # some input looks like: <unk><noise>, we want to separate it to two words.
-        sep = ">" if char == "<" else " "
-        j = i + 1
-        while j < length:
-            c = text[j]
-            if ord(c) >= 128 or c in spacelist or c == sep:
-                break
-            j += 1
-        if j < length and text[j] == ">":
-            j += 1
-        res.append(text[i:j])
-        i = j
+        elif tochar and cat.startswith("L"):
+            res.append(char)
+            i += 1
+        else:
+            # some input looks like: <unk><noise>, we want to separate it to two words.
+            sep = ">" if char == "<" else " "
+            j = i + 1
+            while j < length:
+                c = text[j]
+                if ord(c) >= 128 or c in spacelist or c == sep:
+                    break
+                j += 1
+            if j < length and text[j] == ">":
+                j += 1
+            res.append(text[i:j])
+            i = j
     return res
 
 

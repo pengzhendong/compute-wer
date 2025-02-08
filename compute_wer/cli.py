@@ -44,7 +44,7 @@ def main(ref, hyp, char, sort, case_sensitive, remove_tag, ignore_file, verbose)
         if len(array) == 0:
             continue
         utt, text = array[0], array[1] if len(array) > 1 else ""
-        tokens = characterize(text) if char else text.split()
+        tokens = characterize(text, char)
         rec_set[utt] = normalize(tokens, ignore_words, case_sensitive, remove_tag)
 
     calculator = Calculator()
@@ -57,7 +57,7 @@ def main(ref, hyp, char, sort, case_sensitive, remove_tag, ignore_file, verbose)
             continue
         utt, text = array[0], array[1] if len(array) > 1 else ""
         rec = rec_set[utt]
-        tokens = characterize(text) if char else text.split()
+        tokens = characterize(text, char)
         lab = normalize(tokens, ignore_words, case_sensitive, remove_tag)
         for word in set(rec + lab) - words:
             words.add(word)
@@ -68,18 +68,19 @@ def main(ref, hyp, char, sort, case_sensitive, remove_tag, ignore_file, verbose)
         if sort:
             results = sorted(results, key=lambda x: x[1]["wer"].wer)
         for utt, result in results:
-            print(f"utt: {utt}")
-            print("WER:", result["wer"])
+            print(f"utt: {utt}\nWER: {result['wer']}")
             lengths = [max(width(lab), width(rec)) for lab, rec in zip(result["lab"], result["rec"])]
             for key in ("lab", "rec"):
-                text = " ".join((token.ljust(length) for token, length in zip(result[key], lengths)))
+                text = " ".join((token + " " * (length - width(token)) for token, length in zip(result[key], lengths)))
                 print(f"{key}: {text}")
             print()
     print("===========================================================================\n")
     wer, ser = calculator.overall()
     print(f"Overall -> {wer}")
     for name, cluster in clusters.items():
-        print(f"{name} -> {calculator.cluster(cluster)}")
+        wer = calculator.cluster(cluster)
+        if wer.all > 0:
+            print(f"{name} -> {wer}")
     print(f"SER -> {ser}")
     print("\n===========================================================================")
 

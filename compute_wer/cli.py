@@ -30,7 +30,8 @@ from .utils import characterize, default_cluster, normalize, width
 @click.option("--remove-tag", "--rt", is_flag=True, default=True)
 @click.option("--ignore-file", "--ig", type=click.Path(exists=True, dir_okay=False))
 @click.option("--verbose", "--v", is_flag=True, default=True)
-def main(ref, hyp, char, sort, case_sensitive, remove_tag, ignore_file, verbose):
+@click.option("--max-wer", "--mw", type=float, default=None)
+def main(ref, hyp, char, sort, case_sensitive, remove_tag, ignore_file, verbose, max_wer):
     ignore_words = set()
     if ignore_file is not None:
         for line in codecs.open(ignore_file, encoding="utf-8"):
@@ -47,7 +48,7 @@ def main(ref, hyp, char, sort, case_sensitive, remove_tag, ignore_file, verbose)
         tokens = characterize(text, char)
         rec_set[utt] = normalize(tokens, ignore_words, case_sensitive, remove_tag)
 
-    calculator = Calculator()
+    calculator = Calculator(max_wer=max_wer)
     clusters = defaultdict(set)
     words = set()
     results = []
@@ -62,7 +63,9 @@ def main(ref, hyp, char, sort, case_sensitive, remove_tag, ignore_file, verbose)
         for word in set(rec + lab) - words:
             words.add(word)
             clusters[default_cluster(word)].add(word)
-        results.append((utt, calculator.calculate(lab, rec)))
+        result = calculator.calculate(lab, rec)
+        if result["wer"].wer < max_wer:
+            results.append((utt, result))
 
     if verbose:
         if sort:

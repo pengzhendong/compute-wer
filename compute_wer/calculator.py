@@ -71,22 +71,27 @@ class SER:
 
 class Calculator:
 
-    def __init__(self):
+    def __init__(self, max_wer=None):
         self.data = {}
+        self.max_wer = max_wer
         self.ser = SER()
 
     def calculate(self, lab, rec):
         for token in set(lab + rec):
             self.data.setdefault(token, WER())
+        opcodes = SequenceMatcher(lab, rec).get_opcodes()
 
         result = {"lab": [], "rec": [], "wer": WER()}
-        for op, i, _, j, _ in SequenceMatcher(lab, rec).get_opcodes():
+        for op, i, _, j, _ in opcodes:
             result["wer"][op] += 1
             result["lab"].append(lab[i] if op != INSERT else "")
             result["rec"].append(rec[j] if op != DELETE else "")
-            self.data[lab[i] if op != INSERT else rec[j]][op] += 1
+
         self.ser.cor += result["wer"].wer == 0
-        self.ser.err += result["wer"].wer > 0
+        if self.max_wer is None or result["wer"].wer < self.max_wer:
+            for op, i, _, j, _ in opcodes:
+                self.data[lab[i] if op != INSERT else rec[j]][op] += 1
+            self.ser.err += result["wer"].wer > 0
         return result
 
     def overall(self):

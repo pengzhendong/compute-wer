@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
+
 from edit_distance import DELETE, EQUAL, INSERT, REPLACE, SequenceMatcher
 
 
@@ -71,7 +73,7 @@ class SER:
 
 class Calculator:
 
-    def __init__(self, max_wer=None):
+    def __init__(self, max_wer=sys.maxsize):
         self.data = {}
         self.max_wer = max_wer
         self.ser = SER()
@@ -88,7 +90,7 @@ class Calculator:
             result["rec"].append(rec[j] if op != DELETE else "")
 
         self.ser.cor += result["wer"].wer == 0
-        if self.max_wer is None or result["wer"].wer < self.max_wer:
+        if result["wer"].wer < self.max_wer:
             for op, i, _, j, _ in opcodes:
                 self.data[lab[i] if op != INSERT else rec[j]][op] += 1
             self.ser.err += result["wer"].wer > 0

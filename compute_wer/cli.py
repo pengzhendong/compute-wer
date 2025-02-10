@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import codecs
+import sys
 from collections import defaultdict
 
 import click
@@ -30,7 +31,7 @@ from .utils import characterize, default_cluster, normalize, width
 @click.option("--remove-tag", "--rt", is_flag=True, default=True)
 @click.option("--ignore-file", "--ig", type=click.Path(exists=True, dir_okay=False))
 @click.option("--verbose", "--v", is_flag=True, default=True)
-@click.option("--max-wer", "--mw", type=float, default=None)
+@click.option("--max-wer", "--mw", type=float, default=sys.maxsize)
 def main(ref, hyp, char, sort, case_sensitive, remove_tag, ignore_file, verbose, max_wer):
     ignore_words = set()
     if ignore_file is not None:

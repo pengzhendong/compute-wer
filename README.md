@@ -4,5 +4,5 @@
 
 ``` bash
 $ pip install compute-wer
-$ compute-wer ref.txt hyp.txt
+$ compute-wer ref.txt hyp.txt output.txt
 ```

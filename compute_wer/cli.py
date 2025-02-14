@@ -25,6 +25,7 @@ from .utils import characterize, default_cluster, normalize, width
 @click.command(help="Compute Word Error Rate (WER) and align recognition results with references.")
 @click.argument("ref", type=click.Path(exists=True, dir_okay=False))
 @click.argument("hyp", type=click.Path(exists=True, dir_okay=False))
+@click.argument("output", type=click.Path(dir_okay=False))
 @click.option("--char/--word", default=False)
 @click.option("--sort", "--s", is_flag=True, default=False)
 @click.option("--case-sensitive", "--cs", is_flag=True, default=False)
@@ -32,7 +33,7 @@ from .utils import characterize, default_cluster, normalize, width
 @click.option("--ignore-file", "--ig", type=click.Path(exists=True, dir_okay=False))
 @click.option("--verbose", "--v", is_flag=True, default=True)
 @click.option("--max-wer", "--mw", type=float, default=sys.maxsize)
-def main(ref, hyp, char, sort, case_sensitive, remove_tag, ignore_file, verbose, max_wer):
+def main(ref, hyp, output, char, sort, case_sensitive, remove_tag, ignore_file, verbose, max_wer):
     ignore_words = set()
     if ignore_file is not None:
         for line in codecs.open(ignore_file, encoding="utf-8"):
@@ -68,25 +69,27 @@ def main(ref, hyp, char, sort, case_sensitive, remove_tag, ignore_file, verbose,
         if result["wer"].wer < max_wer:
             results.append((utt, result))
 
+    fout = codecs.open(output, "w", encoding="utf-8")
     if verbose:
         if sort:
             results = sorted(results, key=lambda x: x[1]["wer"].wer)
         for utt, result in results:
-            print(f"utt: {utt}\nWER: {result['wer']}")
+            fout.write(f"utt: {utt}\nWER: {result['wer']}\n")
             lengths = [max(width(lab), width(rec)) for lab, rec in zip(result["lab"], result["rec"])]
             for key in ("lab", "rec"):
                 text = " ".join((token + " " * (length - width(token)) for token, length in zip(result[key], lengths)))
-                print(f"{key}: {text}")
-            print()
-    print("===========================================================================\n")
+                fout.write(f"{key}: {text}\n")
+            fout.write("\n")
+    fout.write("===========================================================================\n")
     wer, ser = calculator.overall()
-    print(f"Overall -> {wer}")
+    fout.write(f"Overall -> {wer}\n")
     for name, cluster in clusters.items():
         wer = calculator.cluster(cluster)
         if wer.all > 0:
-            print(f"{name} -> {wer}")
-    print(f"SER -> {ser}")
-    print("\n===========================================================================")
+            fout.write(f"{name} -> {wer}\n")
+    fout.write(f"SER -> {ser}\n")
+    fout.write("===========================================================================\n")
+    fout.close()
 
 
 if __name__ == "__main__":

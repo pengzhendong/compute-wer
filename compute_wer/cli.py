@@ -14,12 +14,10 @@
 
 import codecs
 import sys
-from collections import defaultdict
 
 import click
 
 from .calculator import Calculator
-from .utils import characterize, default_cluster, normalize, width
 
 
 @click.command(help="Compute Word Error Rate (WER) and align recognition results with references.")
@@ -46,26 +44,17 @@ def main(ref, hyp, output, char, sort, case_sensitive, remove_tag, ignore_file, 
         array = line.strip().split(maxsplit=1)
         if len(array) == 0:
             continue
-        utt, text = array[0], array[1] if len(array) > 1 else ""
-        tokens = characterize(text, char)
-        rec_set[utt] = normalize(tokens, ignore_words, case_sensitive, remove_tag)
+        utt, rec = array[0], array[1] if len(array) > 1 else ""
+        rec_set[utt] = rec
 
-    calculator = Calculator(max_wer=max_wer)
-    clusters = defaultdict(set)
-    words = set()
+    calculator = Calculator(char, case_sensitive, remove_tag, ignore_words, max_wer)
     results = []
     for line in codecs.open(ref, encoding="utf-8"):
         array = line.strip().split(maxsplit=1)
         if len(array) == 0 or array[0] not in rec_set:
             continue
-        utt, text = array[0], array[1] if len(array) > 1 else ""
-        rec = rec_set[utt]
-        tokens = characterize(text, char)
-        lab = normalize(tokens, ignore_words, case_sensitive, remove_tag)
-        for word in set(rec + lab) - words:
-            words.add(word)
-            clusters[default_cluster(word)].add(word)
-        result = calculator.calculate(lab, rec)
+        utt, lab = array[0], array[1] if len(array) > 1 else ""
+        result = calculator.calculate(rec_set[utt], lab)
         if result["wer"].wer < max_wer:
             results.append((utt, result))
 
@@ -75,19 +64,15 @@ def main(ref, hyp, output, char, sort, case_sensitive, remove_tag, ignore_file, 
             results = sorted(results, key=lambda x: x[1]["wer"].wer)
         for utt, result in results:
             fout.write(f"utt: {utt}\nWER: {result['wer']}\n")
-            lengths = [max(width(lab), width(rec)) for lab, rec in zip(result["lab"], result["rec"])]
             for key in ("lab", "rec"):
-                text = " ".join((token + " " * (length - width(token)) for token, length in zip(result[key], lengths)))
-                fout.write(f"{key}: {text}\n")
+                fout.write(f"{key}: {' '.join(result[key])}\n")
             fout.write("\n")
     fout.write("===========================================================================\n")
-    wer, ser = calculator.overall()
+    wer, cluster_wers = calculator.overall()
     fout.write(f"Overall -> {wer}\n")
-    for name, cluster in clusters.items():
-        wer = calculator.cluster(cluster)
-        if wer.all > 0:
-            fout.write(f"{name} -> {wer}\n")
-    fout.write(f"SER -> {ser}\n")
+    for cluster, wer in cluster_wers.items():
+        fout.write(f"{cluster} -> {wer}\n")
+    fout.write(f"SER -> {calculator.ser}\n")
     fout.write("===========================================================================\n")
     fout.close()
 

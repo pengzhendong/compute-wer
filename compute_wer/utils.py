@@ -54,35 +54,6 @@ def characterize(text, tochar):
     return res
 
 
-def width(str):
-    return sum(1 + (east_asian_width(char) in "AFW") for char in str)
-
-
-def strip_tags(token):
-    if not token:
-        return ""
-    chars = []
-    i = 0
-    while i < len(token):
-        if token[i] == "<":
-            end = token.find(">", i) + 1
-            if end == 0:
-                chars.append(token[i])
-                i += 1
-            else:
-                i = end
-        else:
-            chars.append(token[i])
-            i += 1
-    return "".join(chars)
-
-
-def normalize(tokens, ignore_words, case_sensitive=False, remove_tag=False):
-    tokens = (strip_tags(token) if remove_tag else token for token in tokens)
-    tokens = (token.upper() if not case_sensitive else token for token in tokens)
-    return [token for token in tokens if token and token not in ignore_words]
-
-
 def default_cluster(word):
     replacements = {
         "DIGIT": "Number",
@@ -116,3 +87,26 @@ def default_cluster(word):
                 break
         clusters.add(cluster or "Other")
     return clusters.pop() if len(clusters) == 1 else "Other"
+
+
+def strip_tags(token):
+    if not token:
+        return ""
+    chars = []
+    i = 0
+    while i < len(token):
+        if token[i] == "<":
+            end = token.find(">", i) + 1
+            if end == 0:
+                chars.append(token[i])
+                i += 1
+            else:
+                i = end
+        else:
+            chars.append(token[i])
+            i += 1
+    return "".join(chars)
+
+
+def width(str):
+    return sum(1 + (east_asian_width(char) in "AFW") for char in str)

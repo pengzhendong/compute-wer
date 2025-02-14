@@ -13,8 +13,11 @@
 # limitations under the License.
 
 import sys
+from collections import defaultdict
 
 from edit_distance import DELETE, EQUAL, INSERT, REPLACE, SequenceMatcher
+
+from .utils import characterize, default_cluster, strip_tags, width
 
 
 class WER:
@@ -73,21 +76,47 @@ class SER:
 
 class Calculator:
 
-    def __init__(self, max_wer=sys.maxsize):
+    def __init__(
+        self,
+        tochar: bool = False,
+        case_sensitive: bool = False,
+        remove_tag: bool = False,
+        ignore_words: set = None,
+        max_wer: float = sys.maxsize,
+    ):
+        self.tochar = tochar
+        self.case_sensitive = case_sensitive
+        self.remove_tag = remove_tag
+        self.ignore_words = ignore_words
+
+        self.clusters = defaultdict(set)
         self.data = {}
         self.max_wer = max_wer
         self.ser = SER()
 
+    def normalize(self, tokens):
+        tokens = characterize(tokens, self.tochar)
+        tokens = (strip_tags(token) if self.remove_tag else token for token in tokens)
+        tokens = (token.upper() if not self.case_sensitive else token for token in tokens)
+        return [token for token in tokens if token and token not in self.ignore_words]
+
     def calculate(self, lab, rec):
+        lab = self.normalize(lab)
+        rec = self.normalize(rec)
         for token in set(lab + rec):
-            self.data.setdefault(token, WER())
+            if token not in self.data:
+                self.data[token] = WER()
+                self.clusters[default_cluster(token)].add(token)
         opcodes = SequenceMatcher(lab, rec).get_opcodes()
 
         result = {"lab": [], "rec": [], "wer": WER()}
         for op, i, _, j, _ in opcodes:
             result["wer"][op] += 1
-            result["lab"].append(lab[i] if op != INSERT else "")
-            result["rec"].append(rec[j] if op != DELETE else "")
+            lab_token = lab[i] if op != INSERT else ""
+            rec_token = rec[j] if op != DELETE else ""
+            diff = width(rec_token) - width(lab_token)
+            result["lab"].append(lab_token + " " * diff)
+            result["rec"].append(rec_token + " " * -diff)
 
         self.ser.cor += result["wer"].wer == 0
         if result["wer"].wer < self.max_wer:
@@ -96,8 +125,13 @@ class Calculator:
             self.ser.err += result["wer"].wer > 0
         return result
 
-    def overall(self):
-        return WER.overall(self.data.values()), self.ser
-
     def cluster(self, data):
         return WER.overall((self.data.get(token) for token in data))
+
+    def overall(self):
+        cluster_wers = {}
+        for name, cluster in self.clusters.items():
+            wer = self.cluster(cluster)
+            if wer.all > 0:
+                cluster_wers[name] = wer
+        return WER.overall(self.data.values()), cluster_wers

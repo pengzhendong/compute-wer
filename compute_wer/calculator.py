@@ -41,10 +41,10 @@ class WER:
     def wer(self):
         if self.all == 0:
             return 0
-        return (self.replace + self.delete + self.insert) * 100 / self.all
+        return (self.replace + self.delete + self.insert) / self.all
 
     def __str__(self):
-        return f"{self.wer:4.2f} % N={self.all} C={self.equal} S={self.replace} D={self.delete} I={self.insert}"
+        return f"{self.wer * 100:4.2f} % N={self.all} C={self.equal} S={self.replace} D={self.delete} I={self.insert}"
 
     @staticmethod
     def overall(wers):
@@ -68,10 +68,10 @@ class SER:
 
     @property
     def ser(self):
-        return self.err * 100 / self.all if self.all != 0 else 0
+        return self.err / self.all if self.all != 0 else 0
 
     def __str__(self):
-        return f"{self.ser:4.2f} % N={self.all} C={self.cor} E={self.err}"
+        return f"{self.ser * 100:4.2f} % N={self.all} C={self.cor} E={self.err}"
 
 
 class Calculator:
@@ -81,7 +81,7 @@ class Calculator:
         tochar: bool = False,
         case_sensitive: bool = False,
         remove_tag: bool = False,
-        ignore_words: set = None,
+        ignore_words: set = set(),
         max_wer: float = sys.maxsize,
     ):
         self.tochar = tochar

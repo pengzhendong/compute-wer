@@ -54,7 +54,7 @@ def main(ref, hyp, output, char, sort, case_sensitive, remove_tag, ignore_file, 
         if len(array) == 0 or array[0] not in rec_set:
             continue
         utt, lab = array[0], array[1] if len(array) > 1 else ""
-        result = calculator.calculate(rec_set[utt], lab)
+        result = calculator.calculate(lab, rec_set[utt])
         if result["wer"].wer < max_wer:
             results.append((utt, result))
 

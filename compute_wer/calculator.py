@@ -15,6 +15,7 @@
 import sys
 from collections import defaultdict
 
+import contractions
 from edit_distance import DELETE, EQUAL, INSERT, REPLACE, SequenceMatcher
 
 from .utils import characterize, default_cluster, strip_tags, width
@@ -95,6 +96,7 @@ class Calculator:
         self.ser = SER()
 
     def normalize(self, tokens):
+        tokens = contractions.fix(tokens)
         tokens = characterize(tokens, self.tochar)
         tokens = (strip_tags(token) if self.remove_tag else token for token in tokens)
         tokens = (token.upper() if not self.case_sensitive else token for token in tokens)

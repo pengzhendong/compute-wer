@@ -1,22 +1,33 @@
 # compute-wer
 
-## Usage
+## Installation
 
 ```bash
 $ pip install compute-wer
-$ compute-wer ref.txt hyp.txt output.txt
 ```
 
-Each line of the `ref.txt` and `hyp.txt` should meet the following format:
+## Usage
 
 ```bash
-$utt $text
+$ cat ref.txt
+
+/path/to/audio1 莫愁前路无知己
+/path/to/audio2 天下谁人不识君
 ```
 
-or
+```bash
+$ cat hyp.txt
+
+/path/to/audio1 海内存知己
+/path/to/audio2 天下谁人不识君
+```
 
 ```bash
-$utt\t$text
+$ compute-wer ref.txt hyp.txt wer.txt
+```
+
+```bash
+$ compute-wer "莫愁前路无知己" "海内存知己"
 ```
 
 ## Help

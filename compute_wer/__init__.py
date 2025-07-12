@@ -12,6 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .calculator import Calculator
+from compute_wer.calculator import Calculator
 
 __all__ = ["Calculator"]

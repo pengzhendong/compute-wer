@@ -18,7 +18,7 @@ from collections import defaultdict
 import contractions
 from edit_distance import DELETE, EQUAL, INSERT, REPLACE, SequenceMatcher
 
-from .utils import characterize, default_cluster, strip_tags, width
+from compute_wer.utils import characterize, default_cluster, strip_tags, width
 
 
 class WER:
@@ -96,41 +96,69 @@ class Calculator:
         self.ser = SER()
 
     def normalize(self, tokens):
+        """
+        Normalize the tokens.
+        Args:
+            tokens: list of tokens
+        Returns:
+            list of normalized tokens
+        """
         tokens = contractions.fix(tokens)
         tokens = characterize(tokens, self.tochar)
         tokens = (strip_tags(token) if self.remove_tag else token for token in tokens)
         tokens = (token.upper() if not self.case_sensitive else token for token in tokens)
         return [token for token in tokens if token and token not in self.ignore_words]
 
-    def calculate(self, lab, rec):
-        lab = self.normalize(lab)
-        rec = self.normalize(rec)
-        for token in set(lab + rec):
+    def calculate(self, ref, hyp):
+        """
+        Calculate the WER and align the reference and hypothesis.
+        Args:
+            ref: reference text
+            hyp: hypothesis text
+        Returns:
+            result: result of the WER calculation
+        """
+        ref = self.normalize(ref)
+        hyp = self.normalize(hyp)
+        for token in set(ref + hyp):
             if token not in self.data:
                 self.data[token] = WER()
                 self.clusters[default_cluster(token)].add(token)
-        opcodes = SequenceMatcher(lab, rec).get_opcodes()
+        opcodes = SequenceMatcher(ref, hyp).get_opcodes()
 
-        result = {"lab": [], "rec": [], "wer": WER()}
+        result = {"ref": [], "hyp": [], "wer": WER()}
         for op, i, _, j, _ in opcodes:
             result["wer"][op] += 1
-            lab_token = lab[i] if op != INSERT else ""
-            rec_token = rec[j] if op != DELETE else ""
-            diff = width(rec_token) - width(lab_token)
-            result["lab"].append(lab_token + " " * diff)
-            result["rec"].append(rec_token + " " * -diff)
+            ref_token = ref[i] if op != INSERT else ""
+            hyp_token = hyp[j] if op != DELETE else ""
+            diff = width(hyp_token) - width(ref_token)
+            result["ref"].append(ref_token + " " * diff)
+            result["hyp"].append(hyp_token + " " * -diff)
 
         self.ser.cor += result["wer"].wer == 0
         if result["wer"].wer < self.max_wer:
             for op, i, _, j, _ in opcodes:
-                self.data[lab[i] if op != INSERT else rec[j]][op] += 1
+                self.data[ref[i] if op != INSERT else hyp[j]][op] += 1
             self.ser.err += result["wer"].wer > 0
         return result
 
     def cluster(self, data):
+        """
+        Calculate the WER for a cluster.
+        Args:
+            data: list of tokens
+        Returns:
+            WER for the cluster
+        """
         return WER.overall((self.data.get(token) for token in data))
 
     def overall(self):
+        """
+        Calculate the overall WER and the WER for each cluster.
+        Returns:
+            overall WER
+            WER for each cluster
+        """
         cluster_wers = {}
         for name, cluster in self.clusters.items():
             wer = self.cluster(cluster)

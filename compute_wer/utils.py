@@ -20,6 +20,14 @@ puncts = ["!", ",", ".", "?", "-", "、", "。", "！", "，", "；", "？", "�
 
 
 def characterize(text, tochar):
+    """
+    Characterize the text.
+    Args:
+        text: text to characterize
+        tochar: whether to characterize to character
+    Returns:
+        list of characterized tokens
+    """
     res = []
     i = 0
     length = len(text)
@@ -55,6 +63,13 @@ def characterize(text, tochar):
 
 
 def default_cluster(word):
+    """
+    Get the default cluster of a word.
+    Args:
+        word: word to get the default cluster
+    Returns:
+        default cluster
+    """
     replacements = {
         "DIGIT": "Number",
         "CJK UNIFIED IDEOGRAPH": "Chinese",
@@ -90,6 +105,13 @@ def default_cluster(word):
 
 
 def strip_tags(token):
+    """
+    Strip the tags from the token.
+    Args:
+        token: token to strip the tags
+    Returns:
+        token without tags
+    """
     if not token:
         return ""
     chars = []
@@ -109,4 +131,11 @@ def strip_tags(token):
 
 
 def width(str):
+    """
+    Get the width of a string.
+    Args:
+        str: string to get the width
+    Returns:
+        width of the string
+    """
     return sum(1 + (east_asian_width(char) in "AFW") for char in str)

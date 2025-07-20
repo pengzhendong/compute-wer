@@ -28,7 +28,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 @click.argument("ref")
 @click.argument("hyp")
 @click.argument("output-file", type=click.Path(dir_okay=False), required=False)
-@click.option("--align-to-ref", is_flag=True, help="If set, align to reference (default: align to hypothesis)")
+@click.option("--align-to-hyp", is_flag=True, help="If set, align to hypothesis (default: align to reference)")
 @click.option("--char", "-c", is_flag=True, help="Use character-level WER instead of word-level WER.")
 @click.option("--sort", "-s", is_flag=True, help="Sort the hypotheses by WER in ascending order.")
 @click.option("--case-sensitive", "-cs", is_flag=True, help="Use case-sensitive matching.")
@@ -38,7 +38,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 @click.option("--verbose", "-v", is_flag=True, default=True, help="Print verbose output.")
 @click.option("--max-wer", "-mw", type=float, default=sys.maxsize, help="Filter hypotheses with WER <= this value.")
 def main(
-    ref, hyp, output_file, align_to_ref, char, sort, case_sensitive, remove_tag, ignore_file, operator, verbose, max_wer
+    ref, hyp, output_file, align_to_hyp, char, sort, case_sensitive, remove_tag, ignore_file, operator, verbose, max_wer
 ):
     input_is_file = False
     if os.path.exists(ref):
@@ -79,11 +79,13 @@ def main(
                     raise ValueError(f"Conflicting references found:\n{utt}\t{ref}\n{utt}\t{ref_set[utt]}")
                 logging.warning("Skip duplicate reference: %s\t%s", utt, ref)
             ref_set[utt] = ref
-            if not (utt in hyp_set or align_to_ref):
-                hyp_set[utt] = ""
-                logging.warning("No hypothesis found for %s, use empty string as hypothesis.", utt)
-            else:
-                continue
+            if utt not in hyp_set:
+                if align_to_hyp:
+                    continue
+                else:
+                    hyp_set[utt] = ""
+                    logging.warning("No hypothesis found for %s, use empty string as hypothesis.", utt)
+
             result = calculator.calculate(ref, hyp_set[utt])
             if result["wer"].wer < max_wer:
                 results.append((utt, result))

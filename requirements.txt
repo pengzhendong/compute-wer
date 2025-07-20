@@ -1,3 +1,0 @@
-click
-contractions
-edit_distance

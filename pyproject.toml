@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "compute-wer"
+authors = [{ name = "Zhendong Peng", email = "pzd17@tsinghua.org.cn" }]
+description = "Compute WER"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.8"
+dynamic = ["version"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "click>=8.1.7",
+    "contractions>=0.1.73",
+    "edit-distance>=1.0.6",
+    "wetext>=0.0.7",
+]
+
+[project.scripts]
+compute-wer = "compute_wer.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/pengzhendong/compute-wer"
+Documentation = "https://github.com/pengzhendong/compute-wer#readme"
+BugTracker = "https://github.com/pengzhendong/compute-wer/issues"
+
+[tool.setuptools.dynamic]
+version = { file = "VERSION" }

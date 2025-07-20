@@ -17,6 +17,7 @@ from collections import defaultdict
 
 import contractions
 from edit_distance import DELETE, EQUAL, INSERT, REPLACE, SequenceMatcher
+from wetext import Normalizer
 
 from compute_wer.utils import characterize, default_cluster, strip_tags, width
 
@@ -83,28 +84,32 @@ class Calculator:
         case_sensitive: bool = False,
         remove_tag: bool = False,
         ignore_words: set = set(),
+        operator: str = None,
         max_wer: float = sys.maxsize,
     ):
         self.tochar = tochar
         self.case_sensitive = case_sensitive
         self.remove_tag = remove_tag
         self.ignore_words = ignore_words
+        self.normalizer = None if operator is None else Normalizer(operator=operator)
 
         self.clusters = defaultdict(set)
         self.data = {}
         self.max_wer = max_wer
         self.ser = SER()
 
-    def normalize(self, tokens):
+    def normalize(self, text):
         """
-        Normalize the tokens.
+        Normalize the input text.
         Args:
-            tokens: list of tokens
+            text: input text
         Returns:
             list of normalized tokens
         """
-        tokens = contractions.fix(tokens)
-        tokens = characterize(tokens, self.tochar)
+        text = contractions.fix(text)
+        if self.normalizer is not None:
+            text = self.normalizer.normalize(text)
+        tokens = characterize(text, self.tochar)
         tokens = (strip_tags(token) if self.remove_tag else token for token in tokens)
         tokens = (token.upper() if not self.case_sensitive else token for token in tokens)
         return [token for token in tokens if token and token not in self.ignore_words]

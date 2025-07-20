@@ -43,7 +43,7 @@ def characterize(text, tochar):
         elif cat == "Lo":  # Letter-other (Chinese letter)
             res.append(char)
             i += 1
-        elif tochar and cat.startswith("L"):
+        elif tochar and cat.startswith(("L", "N")):
             res.append(char)
             i += 1
         else:

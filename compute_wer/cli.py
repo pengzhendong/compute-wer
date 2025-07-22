@@ -20,6 +20,7 @@ import sys
 import click
 
 from compute_wer.calculator import Calculator
+from compute_wer.utils import read_scp
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
@@ -28,22 +29,62 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 @click.argument("ref")
 @click.argument("hyp")
 @click.argument("output-file", type=click.Path(dir_okay=False), required=False)
-@click.option("--align-to-hyp", is_flag=True, help="If set, align to hypothesis (default: align to reference)")
-@click.option("--char", "-c", is_flag=True, help="Use character-level WER instead of word-level WER.")
+@click.option(
+    "--align-to-hyp",
+    is_flag=True,
+    help="If set, align to hypothesis (default: align to reference)",
+)
+@click.option(
+    "--char",
+    "-c",
+    is_flag=True,
+    help="Use character-level WER instead of word-level WER.",
+)
 @click.option("--sort", "-s", is_flag=True, help="Sort the hypotheses by WER in ascending order.")
 @click.option("--case-sensitive", "-cs", is_flag=True, help="Use case-sensitive matching.")
-@click.option("--remove-tag", "-rt", is_flag=True, default=True, help="Remove tags from the reference and hypothesis.")
-@click.option("--ignore-file", "-ig", type=click.Path(exists=True, dir_okay=False), help="Path to the ignore file.")
-@click.option("--operator", "-o", type=click.Choice(["tn", "itn"], case_sensitive=False), help="Normalizer operator.")
+@click.option(
+    "--remove-tag",
+    "-rt",
+    is_flag=True,
+    default=True,
+    help="Remove tags from the reference and hypothesis.",
+)
+@click.option(
+    "--ignore-file",
+    "-ig",
+    type=click.Path(exists=True, dir_okay=False),
+    help="Path to the ignore file.",
+)
+@click.option(
+    "--operator",
+    "-o",
+    type=click.Choice(["tn", "itn"], case_sensitive=False),
+    help="Normalizer operator.",
+)
 @click.option("--verbose", "-v", is_flag=True, default=True, help="Print verbose output.")
-@click.option("--max-wer", "-mw", type=float, default=sys.maxsize, help="Filter hypotheses with WER <= this value.")
+@click.option(
+    "--max-wer",
+    "-mw",
+    type=float,
+    default=sys.maxsize,
+    help="Filter hypotheses with WER <= this value.",
+)
 def main(
-    ref, hyp, output_file, align_to_hyp, char, sort, case_sensitive, remove_tag, ignore_file, operator, verbose, max_wer
+    ref,
+    hyp,
+    output_file,
+    align_to_hyp,
+    char,
+    sort,
+    case_sensitive,
+    remove_tag,
+    ignore_file,
+    operator,
+    verbose,
+    max_wer,
 ):
-    input_is_file = False
-    if os.path.exists(ref):
-        assert os.path.exists(hyp)
-        input_is_file = True
+    input_is_file = os.path.exists(ref)
+    assert os.path.exists(hyp) == input_is_file
 
     ignore_words = set()
     if ignore_file is not None:
@@ -53,40 +94,20 @@ def main(
                 ignore_words.add(word if case_sensitive else word.upper())
     calculator = Calculator(char, case_sensitive, remove_tag, ignore_words, operator, max_wer)
 
-    if input_is_file:
-        hyp_set = {}
-        for line in codecs.open(hyp, encoding="utf-8"):
-            array = line.strip().split(maxsplit=1)
-            if len(array) == 0:
-                continue
-            utt, hyp = array[0], array[1] if len(array) > 1 else ""
-            if utt in hyp_set:
-                if hyp != hyp_set[utt]:
-                    raise ValueError(f"Conflicting hypotheses found:\n{utt}\t{hyp}\n{utt}\t{hyp_set[utt]}")
-                logging.warning("Skip duplicate hypothesis: %s\t%s", utt, hyp)
-            hyp_set[utt] = hyp
-
     results = []
     if input_is_file:
-        ref_set = {}
-        for line in codecs.open(ref, encoding="utf-8"):
-            array = line.strip().split(maxsplit=1)
-            if len(array) == 0:
-                continue
-            utt, ref = array[0], array[1] if len(array) > 1 else ""
-            if utt in ref_set:
-                if ref != ref_set[utt]:
-                    raise ValueError(f"Conflicting references found:\n{utt}\t{ref}\n{utt}\t{ref_set[utt]}")
-                logging.warning("Skip duplicate reference: %s\t%s", utt, ref)
-            ref_set[utt] = ref
-            if utt not in hyp_set:
-                if align_to_hyp:
-                    continue
-                else:
-                    hyp_set[utt] = ""
-                    logging.warning("No hypothesis found for %s, use empty string as hypothesis.", utt)
+        hyps = read_scp(hyp)
+        refs = read_scp(ref)
+        ref_utts = set(refs.keys())
+        hyp_utts = set(hyps.keys())
 
-            result = calculator.calculate(ref, hyp_set[utt])
+        if not align_to_hyp:
+            for utt in ref_utts - hyp_utts:
+                hyps[utt] = ""
+                hyp_utts.add(utt)
+                logging.warning(f"No hypothesis found for {utt}, use empty string as hypothesis.")
+        for utt in hyp_utts & ref_utts:
+            result = calculator.calculate(refs[utt], hyps[utt])
             if result["wer"].wer < max_wer:
                 results.append((utt, result))
     else:
@@ -114,7 +135,9 @@ def main(
     for cluster, wer in cluster_wers.items():
         fout.write(f"{cluster} -> {wer}\n")
     if input_is_file:
-        fout.write(f"SER -> {calculator.ser}\n")
+        # ML: Missing Labels(Extra Hypotheses)
+        # MH: Missing Hypotheses(Extra Labels)
+        fout.write(f"SER -> {calculator.ser} ML={len(hyp_utts - ref_utts)} MH={len(ref_utts - hyp_utts)}\n")
     fout.write("===========================================================================\n")
     fout.close()
 

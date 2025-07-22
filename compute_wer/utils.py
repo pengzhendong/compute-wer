@@ -12,11 +12,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import codecs
 import unicodedata
 from unicodedata import category, east_asian_width
 
 spacelist = [" ", "\t", "\r", "\n"]
-puncts = ["!", ",", ".", "?", "-", "、", "。", "！", "，", "；", "？", "：", "「", "」", "︰", "『", "』", "《", "》"]
+puncts = [
+    "!",
+    ",",
+    ".",
+    "?",
+    "-",
+    "、",
+    "。",
+    "！",
+    "，",
+    "；",
+    "？",
+    "：",
+    "「",
+    "」",
+    "︰",
+    "『",
+    "』",
+    "《",
+    "》",
+]
 
 
 def characterize(text, tochar):
@@ -102,6 +123,26 @@ def default_cluster(word):
                 break
         clusters.add(cluster or "Other")
     return clusters.pop() if len(clusters) == 1 else "Other"
+
+
+def read_scp(scp_path):
+    """
+    Read the scp file and return a dictionary of utterance to text.
+    Args:
+        scp_path: path to the scp file
+    Returns:
+        dictionary of utterance to text
+    """
+    utt2text = {}
+    for line in codecs.open(scp_path, encoding="utf-8"):
+        arr = line.strip().split(maxsplit=1)
+        if len(arr) == 0:
+            continue
+        utt, text = arr[0], arr[1] if len(arr) > 1 else ""
+        if utt in utt2text and text != utt2text[utt]:
+            raise ValueError(f"Conflicting text found:\n{utt}\t{text}\n{utt}\t{utt2text[utt]}")
+        utt2text[utt] = text
+    return utt2text
 
 
 def strip_tags(token):

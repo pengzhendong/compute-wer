@@ -46,7 +46,7 @@ class WER:
         return (self.replace + self.delete + self.insert) / self.all
 
     def __str__(self):
-        return f"{self.wer * 100:4.2f} % N={self.all} C={self.equal} S={self.replace} D={self.delete} I={self.insert}"
+        return f"{self.wer * 100:4.2f} % N={self.all} Cor={self.equal} Sub={self.replace} Del={self.delete} Ins={self.insert}"
 
     @staticmethod
     def overall(wers):
@@ -73,7 +73,7 @@ class SER:
         return self.err / self.all if self.all != 0 else 0
 
     def __str__(self):
-        return f"{self.ser * 100:4.2f} % N={self.all} C={self.cor} E={self.err}"
+        return f"{self.ser * 100:4.2f} % N={self.all} Cor={self.cor} Err={self.err}"
 
 
 class Calculator:

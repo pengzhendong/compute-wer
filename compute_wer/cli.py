@@ -108,7 +108,7 @@ def main(
                 logging.warning(f"No hypothesis found for {utt}, use empty string as hypothesis.")
         for utt in hyp_utts & ref_utts:
             result = calculator.calculate(refs[utt], hyps[utt])
-            if result["wer"].wer < max_wer:
+            if result["wer"].wer <= max_wer:
                 results.append((utt, result))
     else:
         results.append((None, calculator.calculate(ref, hyp)))

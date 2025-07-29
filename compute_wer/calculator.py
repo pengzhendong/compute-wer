@@ -14,6 +14,7 @@
 
 import sys
 from collections import defaultdict
+from typing import Any, Dict, List, Tuple
 
 import contractions
 from edit_distance import DELETE, EQUAL, INSERT, REPLACE, SequenceMatcher
@@ -85,22 +86,24 @@ class Calculator:
         remove_tag: bool = False,
         ignore_words: set = set(),
         operator: str = None,
+        lang: str = "auto",
         max_wer: float = sys.maxsize,
     ):
         self.tochar = tochar
         self.case_sensitive = case_sensitive
         self.remove_tag = remove_tag
         self.ignore_words = ignore_words
-        self.normalizer = None if operator is None else Normalizer(operator=operator)
+        self.normalizer = None if operator is None else Normalizer(lang, operator)
 
         self.clusters = defaultdict(set)
         self.data = {}
         self.max_wer = max_wer
         self.ser = SER()
 
-    def normalize(self, text):
+    def normalize(self, text) -> List[str]:
         """
         Normalize the input text.
+
         Args:
             text: input text
         Returns:
@@ -114,9 +117,10 @@ class Calculator:
         tokens = (token.upper() if not self.case_sensitive else token for token in tokens)
         return [token for token in tokens if token and token not in self.ignore_words]
 
-    def calculate(self, ref, hyp):
+    def calculate(self, ref, hyp) -> Dict[str, Any]:
         """
         Calculate the WER and align the reference and hypothesis.
+
         Args:
             ref: reference text
             hyp: hypothesis text
@@ -147,9 +151,10 @@ class Calculator:
             self.ser.err += result["wer"].wer > 0
         return result
 
-    def cluster(self, data):
+    def cluster(self, data) -> WER:
         """
         Calculate the WER for a cluster.
+
         Args:
             data: list of tokens
         Returns:
@@ -157,9 +162,10 @@ class Calculator:
         """
         return WER.overall((self.data.get(token) for token in data))
 
-    def overall(self):
+    def overall(self) -> Tuple[WER, Dict[str, WER]]:
         """
         Calculate the overall WER and the WER for each cluster.
+
         Returns:
             overall WER
             WER for each cluster

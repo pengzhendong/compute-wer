@@ -14,6 +14,7 @@
 
 import codecs
 import unicodedata
+from typing import Dict, List
 from unicodedata import category, east_asian_width
 
 spacelist = [" ", "\t", "\r", "\n"]
@@ -40,9 +41,10 @@ puncts = [
 ]
 
 
-def characterize(text, tochar):
+def characterize(text: str, tochar: bool) -> List[str]:
     """
     Characterize the text.
+
     Args:
         text: text to characterize
         tochar: whether to characterize to character
@@ -83,9 +85,10 @@ def characterize(text, tochar):
     return res
 
 
-def default_cluster(word):
+def default_cluster(word: str) -> str:
     """
     Get the default cluster of a word.
+
     Args:
         word: word to get the default cluster
     Returns:
@@ -125,9 +128,10 @@ def default_cluster(word):
     return clusters.pop() if len(clusters) == 1 else "Other"
 
 
-def read_scp(scp_path):
+def read_scp(scp_path: str) -> Dict[str, str]:
     """
     Read the scp file and return a dictionary of utterance to text.
+
     Args:
         scp_path: path to the scp file
     Returns:
@@ -145,9 +149,10 @@ def read_scp(scp_path):
     return utt2text
 
 
-def strip_tags(token):
+def strip_tags(token: str) -> str:
     """
     Strip the tags from the token.
+
     Args:
         token: token to strip the tags
     Returns:
@@ -171,12 +176,13 @@ def strip_tags(token):
     return "".join(chars)
 
 
-def width(str):
+def width(token: str) -> int:
     """
-    Get the width of a string.
+    Get the width of a token.
+
     Args:
-        str: string to get the width
+        token: token to get the width
     Returns:
-        width of the string
+        width of the token
     """
-    return sum(1 + (east_asian_width(char) in "AFW") for char in str)
+    return sum(1 + (east_asian_width(char) in "AFW") for char in token)

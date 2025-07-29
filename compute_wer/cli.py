@@ -61,6 +61,13 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
     type=click.Choice(["tn", "itn"], case_sensitive=False),
     help="Normalizer operator.",
 )
+@click.option(
+    "--lang",
+    "-l",
+    type=click.Choice(["auto", "en", "zh"], case_sensitive=False),
+    default="auto",
+    help="Language for normalization (default: 'auto').",
+)
 @click.option("--verbose", "-v", is_flag=True, default=True, help="Print verbose output.")
 @click.option(
     "--max-wer",
@@ -80,6 +87,7 @@ def main(
     remove_tag,
     ignore_file,
     operator,
+    lang,
     verbose,
     max_wer,
 ):
@@ -92,7 +100,7 @@ def main(
             word = line.strip()
             if len(word) > 0:
                 ignore_words.add(word if case_sensitive else word.upper())
-    calculator = Calculator(char, case_sensitive, remove_tag, ignore_words, operator, max_wer)
+    calculator = Calculator(char, case_sensitive, remove_tag, ignore_words, operator, lang, max_wer)
 
     results = []
     if input_is_file:

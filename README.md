@@ -65,8 +65,9 @@ compute-wer --char ref.txt hyp.txt
 # Case-sensitive matching
 compute-wer --case-sensitive ref.txt hyp.txt
 
-# Sort results by WER
-compute-wer --sort ref.txt hyp.txt
+# Sort results by utterance-id or WER
+compute-wer --sort utt ref.txt hyp.txt
+compute-wer --sort wer ref.txt hyp.txt
 
 # Remove tags from text
 compute-wer --remove-tag ref.txt hyp.txt
@@ -113,7 +114,7 @@ for cluster, wer in cluster_wers.items():
 | Option                    | Description                                       |
 | ------------------------- | ------------------------------------------------- |
 | `--char`, `-c`            | Use character-level WER instead of word-level WER |
-| `--sort`, `-s`            | Sort the hypotheses by WER in ascending order     |
+| `--sort`, `-s`            | Sort the hypotheses by utterance-id or WER in ASC |
 | `--case-sensitive`, `-cs` | Use case-sensitive matching                       |
 | `--remove-tag`, `-rt`     | Remove tags from the reference and hypothesis     |
 | `--ignore-file`, `-ig`    | Path to the ignore file                           |

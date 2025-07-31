@@ -40,7 +40,12 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
     is_flag=True,
     help="Use character-level WER instead of word-level WER.",
 )
-@click.option("--sort", "-s", is_flag=True, help="Sort the hypotheses by WER in ascending order.")
+@click.option(
+    "--sort",
+    "-s",
+    type=click.Choice(["utt", "wer"], case_sensitive=False),
+    help="Sort the hypotheses by utterance-id or WER in ascending order.",
+)
 @click.option("--case-sensitive", "-cs", is_flag=True, help="Use case-sensitive matching.")
 @click.option(
     "--remove-tag",
@@ -128,8 +133,8 @@ def main(
         fout = codecs.open(output_file, "w", encoding="utf-8")
 
     if verbose:
-        if sort:
-            results = sorted(results, key=lambda x: x[1]["wer"].wer)
+        if sort is not None:
+            results = sorted(results, key=lambda x: x[0] if sort == "utt" else x[1]["wer"].wer)
         for utt, result in results:
             if utt is not None:
                 fout.write(f"utt: {utt}\n")

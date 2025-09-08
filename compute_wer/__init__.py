@@ -13,5 +13,6 @@
 # limitations under the License.
 
 from compute_wer.calculator import Calculator
+from compute_wer.utils import normalize, wer
 
-__all__ = ["Calculator"]
+__all__ = ["Calculator", "normalize", "wer"]

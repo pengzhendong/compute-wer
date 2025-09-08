@@ -14,8 +14,14 @@
 
 import codecs
 import unicodedata
-from typing import Dict, List
-from unicodedata import category, east_asian_width
+from functools import partial
+from typing import Dict, List, Literal, Optional
+from unicodedata import category
+
+import contractions
+from wetext import normalize as wetext_normalize
+
+from compute_wer.wer import WER
 
 spacelist = [" ", "\t", "\r", "\n"]
 puncts = [
@@ -46,10 +52,10 @@ def characterize(text: str, tochar: bool) -> List[str]:
     Characterize the text.
 
     Args:
-        text: text to characterize
-        tochar: whether to characterize to character
+        text: The text to characterize.
+        tochar: Whether to characterize to character.
     Returns:
-        list of characterized tokens
+        The list of characterized tokens
     """
     res = []
     i = 0
@@ -90,9 +96,9 @@ def default_cluster(word: str) -> str:
     Get the default cluster of a word.
 
     Args:
-        word: word to get the default cluster
+        word: The word to get the default cluster.
     Returns:
-        default cluster
+        The default cluster.
     """
     replacements = {
         "DIGIT": "Number",
@@ -133,9 +139,9 @@ def read_scp(scp_path: str) -> Dict[str, str]:
     Read the scp file and return a dictionary of utterance to text.
 
     Args:
-        scp_path: path to the scp file
+        scp_path: The path to the scp file.
     Returns:
-        dictionary of utterance to text
+        The dictionary of utterance to text.
     """
     utt2text = {}
     for line in codecs.open(scp_path, encoding="utf-8"):
@@ -154,9 +160,9 @@ def strip_tags(token: str) -> str:
     Strip the tags from the token.
 
     Args:
-        token: token to strip the tags
+        token: The token to strip the tags.
     Returns:
-        token without tags
+        The token without tags.
     """
     if not token:
         return ""
@@ -176,13 +182,94 @@ def strip_tags(token: str) -> str:
     return "".join(chars)
 
 
-def width(token: str) -> int:
+def normalize(
+    text: str,
+    tochar: bool = False,
+    case_sensitive: bool = False,
+    remove_tag: bool = False,
+    ignore_words: set = None,
+) -> List[str]:
     """
-    Get the width of a token.
+    Normalize the input text.
 
     Args:
-        token: token to get the width
+        text: The input text.
+        tochar: Whether to characterize to character.
+        case_sensitive: Whether to be case sensitive.
+        remove_tag: Whether to remove the tags.
+        ignore_words: The words to ignore.
     Returns:
-        width of the token
+        The list of normalized tokens.
     """
-    return sum(1 + (east_asian_width(char) in "AFW") for char in token)
+    if any(ch.isalpha() for ch in text):
+        text = contractions.fix(text)
+    tokens = characterize(text, tochar)
+    tokens = (strip_tags(token) if remove_tag else token for token in tokens)
+    tokens = (token.upper() if not case_sensitive else token for token in tokens)
+    if ignore_words is None:
+        ignore_words = set()
+    return [token for token in tokens if token and token not in ignore_words]
+
+
+def wer(
+    reference: str,
+    hypothesis: str,
+    tochar: bool = False,
+    case_sensitive: bool = False,
+    remove_tag: bool = False,
+    ignore_words: set = None,
+    lang: Optional[Literal["auto", "en", "zh"]] = "auto",
+    operator: Optional[Literal["tn", "itn"]] = None,
+    traditional_to_simple: bool = False,
+    full_to_half: bool = False,
+    remove_interjections: bool = False,
+    remove_puncts: bool = False,
+    tag_oov: bool = False,
+    enable_0_to_9: bool = False,
+    remove_erhua: bool = False,
+) -> WER:
+    """
+    Calculate the WER and align the reference and hypothesis.
+
+    Args:
+        reference: The reference text.
+        hypothesis: The hypothesis text.
+        tochar: Whether to characterize to character.
+        case_sensitive: Whether to be case sensitive.
+        remove_tag: Whether to remove the tags.
+        ignore_words: The words to ignore.
+        lang: The language for text normalization.
+        operator: The operator for text normalization.
+        traditional_to_simple: Whether to convert traditional Chinese to simplified Chinese for text normalization.
+        full_to_half: Whether to convert full-width characters to half-width characters for text normalization.
+        remove_interjections: Whether to remove interjections for text normalization.
+        remove_puncts: Whether to remove punctuation for text normalization.
+        tag_oov: Whether to tag out-of-vocabulary words for text normalization.
+        remove_erhua: Whether to remove erhua for text normalization.
+        enable_0_to_9: Whether to enable 0-to-9 conversion for text normalization.
+    Returns:
+        The WER of the reference and hypothesis.
+    """
+
+    if operator is not None:
+        _normalize = partial(
+            wetext_normalize,
+            lang=lang,
+            operator=operator,
+            traditional_to_simple=traditional_to_simple,
+            full_to_half=full_to_half,
+            remove_interjections=remove_interjections,
+            remove_puncts=remove_puncts,
+            tag_oov=tag_oov,
+            enable_0_to_9=enable_0_to_9,
+            remove_erhua=remove_erhua,
+        )
+        reference = _normalize(reference)
+        hypothesis = _normalize(hypothesis)
+
+    _normalize = partial(
+        normalize, tochar=tochar, case_sensitive=case_sensitive, remove_tag=remove_tag, ignore_words=ignore_words
+    )
+    reference = _normalize(reference)
+    hypothesis = _normalize(hypothesis)
+    return WER(reference, hypothesis)

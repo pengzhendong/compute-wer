@@ -92,15 +92,15 @@ calculator = Calculator(
     tochar=False,           # Character-level WER
     case_sensitive=False,   # Case-sensitive matching
     remove_tag=True,        # Remove tags from text
+    max_wer=float('inf'),   # Maximum WER threshold
     operator=None,          # Text normalizer operator ("tn" or "itn")
-    max_wer=float('inf')    # Maximum WER threshold
 )
 
 # Calculate WER
-result = calculator.calculate("你好世界", "你好")
-print(f"WER: {result['wer']}")
-print(f"Reference : {' '.join(result['ref'])}")
-print(f"Hypothesis: {' '.join(result['hyp'])}")
+wer = calculator.calculate("你好世界", "你好")
+print(f"WER: {wer}")
+print(f"Reference : {' '.join(wer.reference)}")
+print(f"Hypothesis: {' '.join(wer.hypothesis)}")
 
 # Get overall statistics
 overall_wer, cluster_wers = calculator.overall()
@@ -118,8 +118,8 @@ for cluster, wer in cluster_wers.items():
 | `--case-sensitive`, `-cs` | Use case-sensitive matching                       |
 | `--remove-tag`, `-rt`     | Remove tags from the reference and hypothesis     |
 | `--ignore-file`, `-ig`    | Path to the ignore file                           |
-| `--operator`, `-o`        | Normalizer operator (tn or itn)                   |
 | `--max-wer`, `-mw`        | Filter hypotheses with WER <= this value          |
+| `--operator`, `-o`        | Normalizer operator (tn or itn)                   |
 | `--verbose`, `-v`         | Print verbose output                              |
 
 ## Output Format

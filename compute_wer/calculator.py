@@ -14,67 +14,11 @@
 
 import sys
 from collections import defaultdict
-from typing import Any, Dict, List, Tuple
+from functools import partial
+from typing import Any, Dict, Literal, Optional, Tuple
 
-import contractions
-from edit_distance import DELETE, EQUAL, INSERT, REPLACE, SequenceMatcher
-from wetext import Normalizer
-
-from compute_wer.utils import characterize, default_cluster, strip_tags, width
-
-
-class WER:
-    def __init__(self):
-        self.equal = 0
-        self.replace = 0
-        self.delete = 0
-        self.insert = 0
-
-    def __getitem__(self, key):
-        return self.__dict__[key]
-
-    def __setitem__(self, key, value):
-        self.__dict__[key] = value
-
-    @property
-    def all(self):
-        return self.equal + self.replace + self.delete
-
-    @property
-    def wer(self):
-        if self.all == 0:
-            return 0
-        return (self.replace + self.delete + self.insert) / self.all
-
-    def __str__(self):
-        return f"{self.wer * 100:4.2f} % N={self.all} Cor={self.equal} Sub={self.replace} Del={self.delete} Ins={self.insert}"
-
-    @staticmethod
-    def overall(wers):
-        overall = WER()
-        for wer in wers:
-            if wer is None:
-                continue
-            for key in (EQUAL, REPLACE, DELETE, INSERT):
-                overall[key] += wer[key]
-        return overall
-
-
-class SER:
-    def __init__(self):
-        self.cor = 0
-        self.err = 0
-
-    @property
-    def all(self):
-        return self.cor + self.err
-
-    @property
-    def ser(self):
-        return self.err / self.all if self.all != 0 else 0
-
-    def __str__(self):
-        return f"{self.ser * 100:4.2f} % N={self.all} Cor={self.cor} Err={self.err}"
+from compute_wer.utils import default_cluster, wer
+from compute_wer.wer import SER, WER
 
 
 class Calculator:
@@ -85,94 +29,101 @@ class Calculator:
         case_sensitive: bool = False,
         remove_tag: bool = False,
         ignore_words: set = set(),
-        operator: str = None,
-        lang: str = "auto",
         max_wer: float = sys.maxsize,
+        lang: Optional[Literal["auto", "en", "zh"]] = "auto",
+        operator: Optional[Literal["tn", "itn"]] = None,
+        traditional_to_simple: bool = False,
+        full_to_half: bool = False,
+        remove_interjections: bool = False,
+        remove_puncts: bool = False,
+        tag_oov: bool = False,
+        enable_0_to_9: bool = False,
+        remove_erhua: bool = False,
     ):
-        self.tochar = tochar
-        self.case_sensitive = case_sensitive
-        self.remove_tag = remove_tag
-        self.ignore_words = ignore_words
-        self.normalizer = None if operator is None else Normalizer(lang, operator)
-
-        self.clusters = defaultdict(set)
-        self.data = {}
-        self.max_wer = max_wer
-        self.ser = SER()
-
-    def normalize(self, text) -> List[str]:
-        """
-        Normalize the input text.
-
-        Args:
-            text: input text
-        Returns:
-            list of normalized tokens
-        """
-        text = contractions.fix(text)
-        if self.normalizer is not None:
-            text = self.normalizer.normalize(text)
-        tokens = characterize(text, self.tochar)
-        tokens = (strip_tags(token) if self.remove_tag else token for token in tokens)
-        tokens = (token.upper() if not self.case_sensitive else token for token in tokens)
-        return [token for token in tokens if token and token not in self.ignore_words]
-
-    def calculate(self, ref, hyp) -> Dict[str, Any]:
         """
         Calculate the WER and align the reference and hypothesis.
 
         Args:
-            ref: reference text
-            hyp: hypothesis text
-        Returns:
-            result: result of the WER calculation
+            reference: The reference text.
+            hypothesis: The hypothesis text.
+            tochar: Whether to characterize to character.
+            case_sensitive: Whether to be case sensitive.
+            remove_tag: Whether to remove the tags.
+            ignore_words: The words to ignore.
+            lang: The language for text normalization.
+            operator: The operator for text normalization.
+            traditional_to_simple: Whether to convert traditional Chinese to simplified Chinese for text normalization.
+            full_to_half: Whether to convert full width characters to half width characters for text normalization.
+            remove_interjections: Whether to remove interjections for text normalization.
+            remove_puncts: Whether to remove punctuations for text normalization.
+            tag_oov: Whether to tag OOV words for text normalization.
+            enable_0_to_9: Whether to enable 0-9 for text normalization.
+            remove_erhua: Whether to remove erhua for text normalization.
         """
-        ref = self.normalize(ref)
-        hyp = self.normalize(hyp)
-        for token in set(ref + hyp):
-            if token not in self.data:
-                self.data[token] = WER()
+        self.wer = partial(
+            wer,
+            tochar=tochar,
+            case_sensitive=case_sensitive,
+            remove_tag=remove_tag,
+            ignore_words=ignore_words,
+            lang=lang,
+            operator=operator,
+            traditional_to_simple=traditional_to_simple,
+            full_to_half=full_to_half,
+            remove_interjections=remove_interjections,
+            remove_puncts=remove_puncts,
+            tag_oov=tag_oov,
+            enable_0_to_9=enable_0_to_9,
+            remove_erhua=remove_erhua,
+        )
+        self.clusters = defaultdict(set)
+        self.tokens = defaultdict(WER)
+        self.max_wer = max_wer
+        self.ser = SER()
+
+    def calculate(self, reference: str, hypothesis: str) -> Dict[str, Any]:
+        """
+        Calculate the WER for the reference and hypothesis.
+
+        Args:
+            reference: The reference text.
+            hypothesis: The hypothesis text.
+        Returns:
+            result: The WER result.
+        """
+        _wer = self.wer(reference, hypothesis)
+        if _wer.wer < self.max_wer:
+            for token in _wer.tokens:
                 self.clusters[default_cluster(token)].add(token)
-        opcodes = SequenceMatcher(ref, hyp).get_opcodes()
+                self.tokens[token].update(_wer.tokens[token])
+            if _wer.wer == 0:
+                self.ser.cor += 1
+            else:
+                self.ser.err += 1
+        return _wer
 
-        result = {"ref": [], "hyp": [], "wer": WER()}
-        for op, i, _, j, _ in opcodes:
-            result["wer"][op] += 1
-            ref_token = ref[i] if op != INSERT else ""
-            hyp_token = hyp[j] if op != DELETE else ""
-            diff = width(hyp_token) - width(ref_token)
-            result["ref"].append(ref_token + " " * diff)
-            result["hyp"].append(hyp_token + " " * -diff)
-
-        self.ser.cor += result["wer"].wer == 0
-        if result["wer"].wer < self.max_wer:
-            for op, i, _, j, _ in opcodes:
-                self.data[ref[i] if op != INSERT else hyp[j]][op] += 1
-            self.ser.err += result["wer"].wer > 0
-        return result
-
-    def cluster(self, data) -> WER:
+    def cluster(self, tokens) -> WER:
         """
         Calculate the WER for a cluster.
 
         Args:
-            data: list of tokens
+            tokens: The list of tokens.
         Returns:
-            WER for the cluster
+            The WER for the cluster.
         """
-        return WER.overall((self.data.get(token) for token in data))
+        return WER.overall((self.tokens.get(token) for token in tokens))
 
     def overall(self) -> Tuple[WER, Dict[str, WER]]:
         """
         Calculate the overall WER and the WER for each cluster.
 
         Returns:
-            overall WER
-            WER for each cluster
+            The overall WER.
+            The WER for each cluster.
         """
         cluster_wers = {}
         for name, cluster in self.clusters.items():
-            wer = self.cluster(cluster)
-            if wer.all > 0:
-                cluster_wers[name] = wer
-        return WER.overall(self.data.values()), cluster_wers
+            _wer = self.cluster(cluster)
+            if _wer.all > 0:
+                cluster_wers[name] = _wer
+        return WER.overall(self.tokens.values()), cluster_wers

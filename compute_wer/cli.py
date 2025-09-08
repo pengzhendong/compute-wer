@@ -61,10 +61,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
     help="Path to the ignore file.",
 )
 @click.option(
-    "--operator",
-    "-o",
-    type=click.Choice(["tn", "itn"], case_sensitive=False),
-    help="Normalizer operator.",
+    "--max-wer",
+    "-mw",
+    type=float,
+    default=sys.maxsize,
+    help="Filter hypotheses with WER <= this value.",
 )
 @click.option(
     "--lang",
@@ -73,14 +74,20 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
     default="auto",
     help="Language for normalization (default: 'auto').",
 )
-@click.option("--verbose", "-v", is_flag=True, default=True, help="Print verbose output.")
 @click.option(
-    "--max-wer",
-    "-mw",
-    type=float,
-    default=sys.maxsize,
-    help="Filter hypotheses with WER <= this value.",
+    "--operator",
+    "-o",
+    type=click.Choice(["tn", "itn"], case_sensitive=False),
+    help="Normalizer operator.",
 )
+@click.option("--traditional-to-simple", is_flag=True, help="Convert traditional Chinese to simplified Chinese.")
+@click.option("--full-to-half", is_flag=True, help="Convert full-width characters to half-width characters.")
+@click.option("--remove-interjections", is_flag=True, help="Remove interjections.")
+@click.option("--remove-puncts", is_flag=True, help="Remove punctuation.")
+@click.option("--tag-oov", is_flag=True, help="Tag out-of-vocabulary words.")
+@click.option("--enable-0-to-9", is_flag=True, help="Enable 0-to-9 conversion.")
+@click.option("--remove-erhua", is_flag=True, help="Remove erhua.")
+@click.option("--verbose", "-v", is_flag=True, default=True, help="Print verbose output.")
 def main(
     ref,
     hyp,
@@ -91,10 +98,17 @@ def main(
     case_sensitive,
     remove_tag,
     ignore_file,
-    operator,
-    lang,
-    verbose,
     max_wer,
+    lang,
+    operator,
+    traditional_to_simple,
+    full_to_half,
+    remove_interjections,
+    remove_puncts,
+    tag_oov,
+    enable_0_to_9,
+    remove_erhua,
+    verbose,
 ):
     input_is_file = os.path.exists(ref)
     assert os.path.exists(hyp) == input_is_file
@@ -105,9 +119,24 @@ def main(
             word = line.strip()
             if len(word) > 0:
                 ignore_words.add(word if case_sensitive else word.upper())
-    calculator = Calculator(char, case_sensitive, remove_tag, ignore_words, operator, lang, max_wer)
+    calculator = Calculator(
+        char,
+        case_sensitive,
+        remove_tag,
+        ignore_words,
+        max_wer,
+        lang,
+        operator,
+        traditional_to_simple,
+        full_to_half,
+        remove_interjections,
+        remove_puncts,
+        tag_oov,
+        enable_0_to_9,
+        remove_erhua,
+    )
 
-    results = []
+    wers = []
     if input_is_file:
         hyps = read_scp(hyp)
         refs = read_scp(ref)
@@ -118,13 +147,14 @@ def main(
             for utt in ref_utts - hyp_utts:
                 hyps[utt] = ""
                 hyp_utts.add(utt)
-                logging.warning(f"No hypothesis found for {utt}, use empty string as hypothesis.")
+                logging.warning("No hypothesis found for %s, use empty string as hypothesis.", utt)
         for utt in hyp_utts & ref_utts:
-            result = calculator.calculate(refs[utt], hyps[utt])
-            if result["wer"].wer <= max_wer:
-                results.append((utt, result))
+            wer = calculator.calculate(refs[utt], hyps[utt])
+            if wer.wer <= max_wer:
+                wers.append((utt, wer))
     else:
-        results.append((None, calculator.calculate(ref, hyp)))
+        wer = calculator.calculate(ref, hyp)
+        wers.append((None, wer))
 
     fout = sys.stdout
     if output_file is None:
@@ -134,14 +164,13 @@ def main(
 
     if verbose:
         if sort is not None:
-            results = sorted(results, key=lambda x: x[0] if sort == "utt" else x[1]["wer"].wer)
-        for utt, result in results:
+            wers = sorted(wers, key=lambda x: x[0] if sort == "utt" else x[1].wer)
+        for utt, wer in wers:
             if utt is not None:
                 fout.write(f"utt: {utt}\n")
-            fout.write(f"WER: {result['wer']}\n")
-            for key in ("ref", "hyp"):
-                fout.write(f"{key}: {' '.join(result[key])}\n")
-            fout.write("\n")
+            fout.write(f"WER: {wer}\n")
+            fout.write(f"ref: {' '.join(wer.reference)}\n")
+            fout.write(f"hyp: {' '.join(wer.hypothesis)}\n\n")
     fout.write("===========================================================================\n")
     wer, cluster_wers = calculator.overall()
     fout.write(f"Overall -> {wer}\n")

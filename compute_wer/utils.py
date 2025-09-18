@@ -91,6 +91,20 @@ def characterize(text: str, tochar: bool) -> List[str]:
     return res
 
 
+def char_name(char):
+    """
+    Get the name of a character.
+
+    Args:
+        char (str): The character.
+    Return:
+        str: The name of the character.
+    """
+    if char == "\x01":
+        return "SOH"
+    return unicodedata.name(char, "UNK")
+
+
 def default_cluster(word: str) -> str:
     """
     Get the default cluster of a word.
@@ -120,9 +134,11 @@ def default_cluster(word: str) -> str:
         "NUMBER SIGN",
         "PLUS SIGN",
         "SEMICOLON",
+        "SOH (Start of Header)",
+        "UNK (UNKOWN)",
     )
     clusters = set()
-    for name in [unicodedata.name(char) for char in word]:
+    for name in [char_name(char) for char in word]:
         if any(name.startswith(prefix) for prefix in ignored_prefixes):
             continue
         cluster = "Other"

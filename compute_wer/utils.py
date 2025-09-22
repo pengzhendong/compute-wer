@@ -18,8 +18,6 @@ from functools import partial
 from typing import Dict, List, Literal, Optional
 from unicodedata import category
 
-import contractions
-import pyopenjtalk
 from wetext import normalize as wetext_normalize
 
 from compute_wer.wer import WER
@@ -203,8 +201,6 @@ def strip_tags(token: str) -> str:
 def normalize(
     text: str,
     to_char: bool = False,
-    fix_contractions: bool = False,
-    to_kana: bool = False,
     case_sensitive: bool = False,
     remove_tag: bool = False,
     ignore_words: set = None,
@@ -215,18 +211,12 @@ def normalize(
     Args:
         text: The input text.
         to_char: Whether to characterize to character.
-        fix_contractions: Whether to fix the contractions for English.
-        to_kana: Whether to convert the input text to kana (hiragana/katakana) for Japanese.
         case_sensitive: Whether to be case sensitive.
         remove_tag: Whether to remove the tags.
         ignore_words: The words to ignore.
     Returns:
         The list of normalized tokens.
     """
-    if fix_contractions and any(ch.isalpha() for ch in text):
-        text = contractions.fix(text)
-    if to_kana:
-        text = pyopenjtalk.g2p(text, kana=True)
     tokens = characterize(text, to_char)
     tokens = (strip_tags(token) if remove_tag else token for token in tokens)
     tokens = (token.upper() if not case_sensitive else token for token in tokens)
@@ -298,8 +288,6 @@ def wer(
     _normalize = partial(
         normalize,
         to_char=to_char,
-        fix_contractions=fix_contractions,
-        to_kana=to_kana,
         case_sensitive=case_sensitive,
         remove_tag=remove_tag,
         ignore_words=ignore_words,

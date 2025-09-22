@@ -41,6 +41,18 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
     help="Use character-level WER instead of word-level WER.",
 )
 @click.option(
+    "--fix-contractions",
+    "-fc",
+    is_flag=True,
+    help="Fix the contractions for English",
+)
+@click.option(
+    "--kana",
+    "-k",
+    is_flag=True,
+    help="Convert the text to kana (hiragana/katakana) for Japanese.",
+)
+@click.option(
     "--sort",
     "-s",
     type=click.Choice(["utt", "wer"], case_sensitive=False),
@@ -94,6 +106,8 @@ def main(
     output_file,
     align_to_hyp,
     char,
+    fix_contractions,
+    kana,
     sort,
     case_sensitive,
     remove_tag,
@@ -121,6 +135,8 @@ def main(
                 ignore_words.add(word if case_sensitive else word.upper())
     calculator = Calculator(
         char,
+        fix_contractions,
+        kana,
         case_sensitive,
         remove_tag,
         ignore_words,

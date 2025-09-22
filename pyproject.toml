@@ -18,6 +18,7 @@ dependencies = [
     "click",
     "contractions",
     "edit-distance",
+    "pyopenjtalk-plus[onnxruntime]",
     "wetext",
 ]
 

@@ -19,6 +19,7 @@ from typing import Dict, List, Literal, Optional
 from unicodedata import category
 
 import contractions
+import pyopenjtalk
 from wetext import normalize as wetext_normalize
 
 from compute_wer.wer import WER
@@ -47,13 +48,13 @@ puncts = [
 ]
 
 
-def characterize(text: str, tochar: bool) -> List[str]:
+def characterize(text: str, to_char: bool) -> List[str]:
     """
     Characterize the text.
 
     Args:
         text: The text to characterize.
-        tochar: Whether to characterize to character.
+        to_char: Whether to characterize to character.
     Returns:
         The list of characterized tokens
     """
@@ -72,7 +73,7 @@ def characterize(text: str, tochar: bool) -> List[str]:
         elif cat == "Lo":  # Letter-other (Chinese letter)
             res.append(char)
             i += 1
-        elif tochar and cat.startswith(("L", "N")):
+        elif to_char and cat.startswith(("L", "N")):
             res.append(char)
             i += 1
         else:
@@ -121,6 +122,7 @@ def default_cluster(word: str) -> str:
         "LATIN CAPITAL LETTER": "English",
         "LATIN SMALL LETTER": "English",
         "HIRAGANA LETTER": "Japanese",
+        "KATAKANA LETTER": "Japanese",
     }
     ignored_prefixes = (
         "AMPERSAND",
@@ -200,7 +202,9 @@ def strip_tags(token: str) -> str:
 
 def normalize(
     text: str,
-    tochar: bool = False,
+    to_char: bool = False,
+    fix_contractions: bool = False,
+    to_kana: bool = False,
     case_sensitive: bool = False,
     remove_tag: bool = False,
     ignore_words: set = None,
@@ -210,16 +214,20 @@ def normalize(
 
     Args:
         text: The input text.
-        tochar: Whether to characterize to character.
+        to_char: Whether to characterize to character.
+        fix_contractions: Whether to fix the contractions for English.
+        to_kana: Whether to convert the input text to kana (hiragana/katakana) for Japanese.
         case_sensitive: Whether to be case sensitive.
         remove_tag: Whether to remove the tags.
         ignore_words: The words to ignore.
     Returns:
         The list of normalized tokens.
     """
-    if any(ch.isalpha() for ch in text):
+    if fix_contractions and any(ch.isalpha() for ch in text):
         text = contractions.fix(text)
-    tokens = characterize(text, tochar)
+    if to_kana:
+        text = pyopenjtalk.g2p(text, kana=True)
+    tokens = characterize(text, to_char)
     tokens = (strip_tags(token) if remove_tag else token for token in tokens)
     tokens = (token.upper() if not case_sensitive else token for token in tokens)
     if ignore_words is None:
@@ -230,7 +238,9 @@ def normalize(
 def wer(
     reference: str,
     hypothesis: str,
-    tochar: bool = False,
+    to_char: bool = False,
+    fix_contractions: bool = False,
+    to_kana: bool = False,
     case_sensitive: bool = False,
     remove_tag: bool = False,
     ignore_words: set = None,
@@ -250,7 +260,9 @@ def wer(
     Args:
         reference: The reference text.
         hypothesis: The hypothesis text.
-        tochar: Whether to characterize to character.
+        to_char: Whether to characterize to character.
+        fix_contractions: Whether to fix the contractions for English.
+        to_kana: Whether to convert the input text to kana (hiragana/katakana) for Japanese.
         case_sensitive: Whether to be case sensitive.
         remove_tag: Whether to remove the tags.
         ignore_words: The words to ignore.
@@ -284,7 +296,13 @@ def wer(
         hypothesis = _normalize(hypothesis)
 
     _normalize = partial(
-        normalize, tochar=tochar, case_sensitive=case_sensitive, remove_tag=remove_tag, ignore_words=ignore_words
+        normalize,
+        to_char=to_char,
+        fix_contractions=fix_contractions,
+        to_kana=to_kana,
+        case_sensitive=case_sensitive,
+        remove_tag=remove_tag,
+        ignore_words=ignore_words,
     )
     reference = _normalize(reference)
     hypothesis = _normalize(hypothesis)

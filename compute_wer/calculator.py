@@ -25,7 +25,9 @@ class Calculator:
 
     def __init__(
         self,
-        tochar: bool = False,
+        to_char: bool = False,
+        fix_contractions: bool = False,
+        to_kana: bool = False,
         case_sensitive: bool = False,
         remove_tag: bool = False,
         ignore_words: set = set(),
@@ -46,7 +48,9 @@ class Calculator:
         Args:
             reference: The reference text.
             hypothesis: The hypothesis text.
-            tochar: Whether to characterize to character.
+            to_char: Whether to characterize to character.
+            fix_contractions: Whether to fix the contractions for English.
+            to_kana: Whether to convert the input text to kana (hiragana/katakana) for Japanese.
             case_sensitive: Whether to be case sensitive.
             remove_tag: Whether to remove the tags.
             ignore_words: The words to ignore.
@@ -62,7 +66,9 @@ class Calculator:
         """
         self.wer = partial(
             wer,
-            tochar=tochar,
+            to_char=to_char,
+            fix_contractions=fix_contractions,
+            to_kana=to_kana,
             case_sensitive=case_sensitive,
             remove_tag=remove_tag,
             ignore_words=ignore_words,

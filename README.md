@@ -89,7 +89,7 @@ from compute_wer import Calculator
 
 # Initialize calculator
 calculator = Calculator(
-    to_char=False,           # Character-level WER
+    to_char=False,          # Character-level WER
     case_sensitive=False,   # Case-sensitive matching
     remove_tag=True,        # Remove tags from text
     max_wer=float('inf'),   # Maximum WER threshold

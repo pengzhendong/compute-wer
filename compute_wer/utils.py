@@ -18,8 +18,6 @@ from functools import partial
 from typing import Dict, List, Literal, Optional
 from unicodedata import category
 
-from wetext import normalize as wetext_normalize
-
 from compute_wer.wer import WER
 
 spacelist = [" ", "\t", "\r", "\n"]
@@ -270,6 +268,8 @@ def wer(
     """
 
     if operator is not None:
+        from wetext import normalize as wetext_normalize
+
         _normalize = partial(
             wetext_normalize,
             lang=lang,

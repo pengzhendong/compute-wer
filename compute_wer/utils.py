@@ -21,27 +21,6 @@ from unicodedata import category
 from compute_wer.wer import WER
 
 spacelist = [" ", "\t", "\r", "\n"]
-puncts = [
-    "!",
-    ",",
-    ".",
-    "?",
-    "-",
-    "、",
-    "。",
-    "！",
-    "，",
-    "；",
-    "？",
-    "：",
-    "「",
-    "」",
-    "︰",
-    "『",
-    "』",
-    "《",
-    "》",
-]
 
 
 def characterize(text: str, to_char: bool) -> List[str]:
@@ -59,10 +38,11 @@ def characterize(text: str, to_char: bool) -> List[str]:
     length = len(text)
     while i < length:
         char = text[i]
-        if char in puncts or char in spacelist:
+        cat = category(char)
+
+        if char in spacelist or (cat not in ("<", ">") and cat.startswith("P")):
             i += 1
             continue
-        cat = category(char)
         # https://unicodebook.readthedocs.io/unicode.html#unicode-categories
         if cat in {"Zs", "Cn"}:  # space or not assigned
             i += 1
@@ -227,8 +207,6 @@ def wer(
     reference: str,
     hypothesis: str,
     to_char: bool = False,
-    fix_contractions: bool = False,
-    to_kana: bool = False,
     case_sensitive: bool = False,
     remove_tag: bool = False,
     ignore_words: set = None,
@@ -249,8 +227,6 @@ def wer(
         reference: The reference text.
         hypothesis: The hypothesis text.
         to_char: Whether to characterize to character.
-        fix_contractions: Whether to fix the contractions for English.
-        to_kana: Whether to convert the input text to kana (hiragana/katakana) for Japanese.
         case_sensitive: Whether to be case sensitive.
         remove_tag: Whether to remove the tags.
         ignore_words: The words to ignore.

@@ -16,7 +16,7 @@ from collections import defaultdict
 from typing import List, Optional
 from unicodedata import east_asian_width
 
-from edit_distance import DELETE, EQUAL, INSERT, REPLACE, SequenceMatcher
+from edit_distance import SequenceMatcher
 
 
 class WER:
@@ -35,13 +35,13 @@ class WER:
             for op, i, _, j, _ in matcher.get_opcodes():
                 setattr(self, op, getattr(self, op) + 1)
                 # For the cluster WER
-                token = reference[i] if op != INSERT else hypothesis[j]
+                token = reference[i] if op != "insert" else hypothesis[j]
                 if token not in self.tokens:
                     self.tokens[token] = WER()
                 self.tokens[token][op] += 1
 
-                ref_token = reference[i] if op != INSERT else ""
-                hyp_token = hypothesis[j] if op != DELETE else ""
+                ref_token = reference[i] if op != "insert" else ""
+                hyp_token = hypothesis[j] if op != "delete" else ""
                 diff = WER.width(hyp_token) - WER.width(ref_token)
                 self.reference.append(ref_token + " " * diff)
                 self.hypothesis.append(hyp_token + " " * -diff)
@@ -103,7 +103,7 @@ class WER:
         for wer in wers:
             if wer is None:
                 continue
-            for key in (EQUAL, REPLACE, DELETE, INSERT):
+            for key in ("equal", "replace", "delete", "insert"):
                 overall[key] += wer[key]
         return overall
 

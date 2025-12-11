@@ -14,7 +14,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
 ]
-dependencies = ["click", "edit-distance", "wetext"]
+dependencies = ["click", "edit-distance"]
 
 [project.scripts]
 compute-wer = "compute_wer.cli:main"

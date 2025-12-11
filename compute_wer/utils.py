@@ -14,8 +14,7 @@
 
 import codecs
 import unicodedata
-from functools import partial
-from typing import Dict, List, Literal, Optional
+from typing import Dict, List
 from unicodedata import category
 
 from compute_wer.wer import WER
@@ -38,12 +37,12 @@ def characterize(text: str, to_char: bool) -> List[str]:
     length = len(text)
     while i < length:
         char = text[i]
-        cat = category(char)
-
-        if char in spacelist or (cat not in ("<", ">") and cat.startswith("P")):
+        if char in spacelist:
             i += 1
             continue
+
         # https://unicodebook.readthedocs.io/unicode.html#unicode-categories
+        cat = category(char)
         if cat in {"Zs", "Cn"}:  # space or not assigned
             i += 1
         elif cat == "Lo":  # Letter-other (Chinese letter)
@@ -177,11 +176,7 @@ def strip_tags(token: str) -> str:
 
 
 def normalize(
-    text: str,
-    to_char: bool = False,
-    case_sensitive: bool = False,
-    remove_tag: bool = False,
-    ignore_words: set = None,
+    text: str, to_char: bool = False, case_sensitive: bool = False, remove_tag: bool = False, ignore_words: set = None
 ) -> List[str]:
     """
     Normalize the input text.
@@ -210,15 +205,6 @@ def wer(
     case_sensitive: bool = False,
     remove_tag: bool = False,
     ignore_words: set = None,
-    lang: Optional[Literal["auto", "en", "zh"]] = "auto",
-    operator: Optional[Literal["tn", "itn"]] = None,
-    traditional_to_simple: bool = False,
-    full_to_half: bool = False,
-    remove_interjections: bool = False,
-    remove_puncts: bool = False,
-    tag_oov: bool = False,
-    enable_0_to_9: bool = False,
-    remove_erhua: bool = False,
 ) -> WER:
     """
     Calculate the WER and align the reference and hypothesis.
@@ -230,44 +216,9 @@ def wer(
         case_sensitive: Whether to be case sensitive.
         remove_tag: Whether to remove the tags.
         ignore_words: The words to ignore.
-        lang: The language for text normalization.
-        operator: The operator for text normalization.
-        traditional_to_simple: Whether to convert traditional Chinese to simplified Chinese for text normalization.
-        full_to_half: Whether to convert full-width characters to half-width characters for text normalization.
-        remove_interjections: Whether to remove interjections for text normalization.
-        remove_puncts: Whether to remove punctuation for text normalization.
-        tag_oov: Whether to tag out-of-vocabulary words for text normalization.
-        remove_erhua: Whether to remove erhua for text normalization.
-        enable_0_to_9: Whether to enable 0-to-9 conversion for text normalization.
     Returns:
         The WER of the reference and hypothesis.
     """
-
-    if operator is not None:
-        from wetext import normalize as wetext_normalize
-
-        _normalize = partial(
-            wetext_normalize,
-            lang=lang,
-            operator=operator,
-            traditional_to_simple=traditional_to_simple,
-            full_to_half=full_to_half,
-            remove_interjections=remove_interjections,
-            remove_puncts=remove_puncts,
-            tag_oov=tag_oov,
-            enable_0_to_9=enable_0_to_9,
-            remove_erhua=remove_erhua,
-        )
-        reference = _normalize(reference)
-        hypothesis = _normalize(hypothesis)
-
-    _normalize = partial(
-        normalize,
-        to_char=to_char,
-        case_sensitive=case_sensitive,
-        remove_tag=remove_tag,
-        ignore_words=ignore_words,
-    )
-    reference = _normalize(reference)
-    hypothesis = _normalize(hypothesis)
+    reference = normalize(reference, to_char, case_sensitive, remove_tag, ignore_words)
+    hypothesis = normalize(hypothesis, to_char, case_sensitive, remove_tag, ignore_words)
     return WER(reference, hypothesis)

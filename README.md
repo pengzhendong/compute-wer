@@ -12,7 +12,6 @@ A Python package for computing Word Error Rate (WER) and Sentence Error Rate (SE
 - Detailed alignment visualization between reference and hypothesis texts
 - Support for case-sensitive and case-insensitive matching
 - Cluster-based error analysis (Chinese, English, Numbers, etc.)
-- Text normalization with TN (Text Normalization) and ITN (Inverse Text Normalization)
 - Support for filtering results based on maximum WER threshold
 - Handle tagged text with option to remove tags
 
@@ -72,9 +71,6 @@ compute-wer --sort wer ref.txt hyp.txt
 # Remove tags from text
 compute-wer --remove-tag ref.txt hyp.txt
 
-# Use text normalizer
-compute-wer --operator tn ref.txt hyp.txt
-
 # Filter results with WER <= 50%
 compute-wer --max-wer 0.5 ref.txt hyp.txt
 
@@ -92,8 +88,7 @@ calculator = Calculator(
     to_char=False,          # Character-level WER
     case_sensitive=False,   # Case-sensitive matching
     remove_tag=True,        # Remove tags from text
-    max_wer=float('inf'),   # Maximum WER threshold
-    operator=None,          # Text normalizer operator ("tn" or "itn")
+    max_wer=float('inf')    # Maximum WER threshold
 )
 
 # Calculate WER
@@ -119,7 +114,6 @@ for cluster, wer in cluster_wers.items():
 | `--remove-tag`, `-rt`     | Remove tags from the reference and hypothesis     |
 | `--ignore-file`, `-ig`    | Path to the ignore file                           |
 | `--max-wer`, `-mw`        | Filter hypotheses with WER <= this value          |
-| `--operator`, `-o`        | Normalizer operator (tn or itn)                   |
 | `--verbose`, `-v`         | Print verbose output                              |
 
 ## Output Format

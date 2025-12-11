@@ -20,7 +20,11 @@ from edit_distance import SequenceMatcher
 
 
 class WER:
-    def __init__(self, reference: Optional[List[str]] = None, hypothesis: Optional[List[str]] = None):
+    def __init__(
+        self,
+        reference: Optional[List[str]] = None,
+        hypothesis: Optional[List[str]] = None,
+    ):
         self.equal = 0
         self.replace = 0
         self.delete = 0

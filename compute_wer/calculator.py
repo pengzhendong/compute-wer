@@ -15,14 +15,13 @@
 import sys
 from collections import defaultdict
 from functools import partial
-from typing import Any, Dict, Literal, Optional, Tuple
+from typing import Any, Dict, Tuple
 
 from compute_wer.utils import default_cluster, wer
 from compute_wer.wer import SER, WER
 
 
 class Calculator:
-
     def __init__(
         self,
         to_char: bool = False,
@@ -30,15 +29,6 @@ class Calculator:
         remove_tag: bool = False,
         ignore_words: set = set(),
         max_wer: float = sys.maxsize,
-        lang: Optional[Literal["auto", "en", "zh"]] = "auto",
-        operator: Optional[Literal["tn", "itn"]] = None,
-        traditional_to_simple: bool = False,
-        full_to_half: bool = False,
-        remove_interjections: bool = False,
-        remove_puncts: bool = False,
-        tag_oov: bool = False,
-        enable_0_to_9: bool = False,
-        remove_erhua: bool = False,
     ):
         """
         Calculate the WER and align the reference and hypothesis.
@@ -50,31 +40,9 @@ class Calculator:
             case_sensitive: Whether to be case sensitive.
             remove_tag: Whether to remove the tags.
             ignore_words: The words to ignore.
-            lang: The language for text normalization.
-            operator: The operator for text normalization.
-            traditional_to_simple: Whether to convert traditional Chinese to simplified Chinese for text normalization.
-            full_to_half: Whether to convert full width characters to half width characters for text normalization.
-            remove_interjections: Whether to remove interjections for text normalization.
-            remove_puncts: Whether to remove punctuations for text normalization.
-            tag_oov: Whether to tag OOV words for text normalization.
-            enable_0_to_9: Whether to enable 0-9 for text normalization.
-            remove_erhua: Whether to remove erhua for text normalization.
         """
         self.wer = partial(
-            wer,
-            to_char=to_char,
-            case_sensitive=case_sensitive,
-            remove_tag=remove_tag,
-            ignore_words=ignore_words,
-            lang=lang,
-            operator=operator,
-            traditional_to_simple=traditional_to_simple,
-            full_to_half=full_to_half,
-            remove_interjections=remove_interjections,
-            remove_puncts=remove_puncts,
-            tag_oov=tag_oov,
-            enable_0_to_9=enable_0_to_9,
-            remove_erhua=remove_erhua,
+            wer, to_char=to_char, case_sensitive=case_sensitive, remove_tag=remove_tag, ignore_words=ignore_words
         )
         self.clusters = defaultdict(set)
         self.tokens = defaultdict(WER)

@@ -92,8 +92,7 @@ calculator = Calculator(
     to_char=False,          # Character-level WER
     case_sensitive=False,   # Case-sensitive matching
     remove_tag=True,        # Remove tags from text
-    max_wer=float('inf'),   # Maximum WER threshold
-    operator=None,          # Text normalizer operator ("tn" or "itn")
+    max_wer=float('inf')    # Maximum WER threshold
 )
 
 # Calculate WER
@@ -119,7 +118,6 @@ for cluster, wer in cluster_wers.items():
 | `--remove-tag`, `-rt`     | Remove tags from the reference and hypothesis     |
 | `--ignore-file`, `-ig`    | Path to the ignore file                           |
 | `--max-wer`, `-mw`        | Filter hypotheses with WER <= this value          |
-| `--operator`, `-o`        | Normalizer operator (tn or itn)                   |
 | `--verbose`, `-v`         | Print verbose output                              |
 
 ## Output Format

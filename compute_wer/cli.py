@@ -29,17 +29,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 @click.argument("ref")
 @click.argument("hyp")
 @click.argument("output-file", type=click.Path(dir_okay=False), required=False)
-@click.option(
-    "--align-to-hyp",
-    is_flag=True,
-    help="If set, align to hypothesis (default: align to reference)",
-)
-@click.option(
-    "--char",
-    "-c",
-    is_flag=True,
-    help="Use character-level WER instead of word-level WER.",
-)
+@click.option("--align-to-hyp", is_flag=True, help="If set, align to hypothesis (default: align to reference)")
+@click.option("--char", "-c", is_flag=True, help="Use character-level WER instead of word-level WER.")
 @click.option(
     "--sort",
     "-s",
@@ -47,69 +38,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
     help="Sort the hypotheses by utterance-id or WER in ascending order.",
 )
 @click.option("--case-sensitive", "-cs", is_flag=True, help="Use case-sensitive matching.")
-@click.option(
-    "--remove-tag",
-    "-rt",
-    is_flag=True,
-    default=True,
-    help="Remove tags from the reference and hypothesis.",
-)
-@click.option(
-    "--ignore-file",
-    "-ig",
-    type=click.Path(exists=True, dir_okay=False),
-    help="Path to the ignore file.",
-)
-@click.option(
-    "--max-wer",
-    "-mw",
-    type=float,
-    default=sys.maxsize,
-    help="Filter hypotheses with WER <= this value.",
-)
-@click.option(
-    "--lang",
-    "-l",
-    type=click.Choice(["auto", "en", "zh"], case_sensitive=False),
-    default="auto",
-    help="Language for normalization (default: 'auto').",
-)
-@click.option(
-    "--operator",
-    "-o",
-    type=click.Choice(["tn", "itn"], case_sensitive=False),
-    help="Normalizer operator.",
-)
-@click.option("--traditional-to-simple", is_flag=True, help="Convert traditional Chinese to simplified Chinese.")
-@click.option("--full-to-half", is_flag=True, help="Convert full-width characters to half-width characters.")
-@click.option("--remove-interjections", is_flag=True, help="Remove interjections.")
-@click.option("--remove-puncts", is_flag=True, help="Remove punctuation.")
-@click.option("--tag-oov", is_flag=True, help="Tag out-of-vocabulary words.")
-@click.option("--enable-0-to-9", is_flag=True, help="Enable 0-to-9 conversion.")
-@click.option("--remove-erhua", is_flag=True, help="Remove erhua.")
+@click.option("--remove-tag", "-rt", is_flag=True, default=True, help="Remove tags from the reference and hypothesis.")
+@click.option("--ignore-file", "-ig", type=click.Path(exists=True, dir_okay=False), help="Path to the ignore file.")
+@click.option("--max-wer", "-mw", type=float, default=sys.maxsize, help="Filter hypotheses with WER <= this value.")
 @click.option("--verbose", "-v", is_flag=True, default=True, help="Print verbose output.")
-def main(
-    ref,
-    hyp,
-    output_file,
-    align_to_hyp,
-    char,
-    sort,
-    case_sensitive,
-    remove_tag,
-    ignore_file,
-    max_wer,
-    lang,
-    operator,
-    traditional_to_simple,
-    full_to_half,
-    remove_interjections,
-    remove_puncts,
-    tag_oov,
-    enable_0_to_9,
-    remove_erhua,
-    verbose,
-):
+def main(ref, hyp, output_file, align_to_hyp, char, sort, case_sensitive, remove_tag, ignore_file, max_wer, verbose):
     input_is_file = os.path.exists(ref)
     assert os.path.exists(hyp) == input_is_file
 
@@ -119,22 +52,7 @@ def main(
             word = line.strip()
             if len(word) > 0:
                 ignore_words.add(word if case_sensitive else word.upper())
-    calculator = Calculator(
-        char,
-        case_sensitive,
-        remove_tag,
-        ignore_words,
-        max_wer,
-        lang,
-        operator,
-        traditional_to_simple,
-        full_to_half,
-        remove_interjections,
-        remove_puncts,
-        tag_oov,
-        enable_0_to_9,
-        remove_erhua,
-    )
+    calculator = Calculator(char, case_sensitive, remove_tag, ignore_words, max_wer)
 
     wers = []
     if input_is_file:

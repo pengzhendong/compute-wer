@@ -20,15 +20,24 @@ from unicodedata import category
 from compute_wer.wer import WER
 
 spacelist = [" ", "\t", "\r", "\n"]
+single_quote = "'"
 
 
-def characterize(text: str, to_char: bool) -> List[str]:
+def is_punctuation(char: str) -> bool:
+    """
+    Check if a character is punctuation.
+    """
+    return category(char).startswith(("P", "S"))
+
+
+def characterize(text: str, to_char: bool, ignore_punctuation: bool = False) -> List[str]:
     """
     Characterize the text.
 
     Args:
         text: The text to characterize.
         to_char: Whether to characterize to character.
+        ignore_punctuation: Whether to ignore punctuation (except single quotes).
     Returns:
         The list of characterized tokens
     """
@@ -45,6 +54,8 @@ def characterize(text: str, to_char: bool) -> List[str]:
         cat = category(char)
         if cat in {"Zs", "Cn"}:  # space or not assigned
             i += 1
+        elif ignore_punctuation and is_punctuation(char) and char != single_quote:
+            i += 1
         elif cat == "Lo":  # Letter-other (Chinese letter)
             res.append(char)
             i += 1
@@ -58,6 +69,8 @@ def characterize(text: str, to_char: bool) -> List[str]:
             while j < length:
                 c = text[j]
                 if ord(c) >= 128 or c in spacelist or c == sep:
+                    break
+                if ignore_punctuation and is_punctuation(c) and c != single_quote:
                     break
                 j += 1
             if j < length and text[j] == ">":
@@ -176,7 +189,12 @@ def strip_tags(token: str) -> str:
 
 
 def normalize(
-    text: str, to_char: bool = False, case_sensitive: bool = False, remove_tag: bool = False, ignore_words: set = None
+    text: str,
+    to_char: bool = False,
+    case_sensitive: bool = False,
+    remove_tag: bool = False,
+    ignore_words: set = None,
+    ignore_punctuation: bool = False,
 ) -> List[str]:
     """
     Normalize the input text.
@@ -187,10 +205,11 @@ def normalize(
         case_sensitive: Whether to be case sensitive.
         remove_tag: Whether to remove the tags.
         ignore_words: The words to ignore.
+        ignore_punctuation: Whether to ignore punctuation (except single quotes).
     Returns:
         The list of normalized tokens.
     """
-    tokens = characterize(text, to_char)
+    tokens = characterize(text, to_char, ignore_punctuation)
     tokens = (strip_tags(token) if remove_tag else token for token in tokens)
     tokens = (token.upper() if not case_sensitive else token for token in tokens)
     if ignore_words is None:
@@ -205,6 +224,7 @@ def wer(
     case_sensitive: bool = False,
     remove_tag: bool = False,
     ignore_words: set = None,
+    ignore_punctuation: bool = False,
 ) -> WER:
     """
     Calculate the WER and align the reference and hypothesis.
@@ -216,9 +236,10 @@ def wer(
         case_sensitive: Whether to be case sensitive.
         remove_tag: Whether to remove the tags.
         ignore_words: The words to ignore.
+        ignore_punctuation: Whether to ignore punctuation (except single quotes).
     Returns:
         The WER of the reference and hypothesis.
     """
-    reference = normalize(reference, to_char, case_sensitive, remove_tag, ignore_words)
-    hypothesis = normalize(hypothesis, to_char, case_sensitive, remove_tag, ignore_words)
+    reference = normalize(reference, to_char, case_sensitive, remove_tag, ignore_words, ignore_punctuation)
+    hypothesis = normalize(hypothesis, to_char, case_sensitive, remove_tag, ignore_words, ignore_punctuation)
     return WER(reference, hypothesis)

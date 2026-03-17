@@ -28,6 +28,7 @@ class Calculator:
         case_sensitive: bool = False,
         remove_tag: bool = False,
         ignore_words: set = set(),
+        ignore_punctuation: bool = False,
         max_wer: float = sys.maxsize,
     ):
         """
@@ -39,10 +40,16 @@ class Calculator:
             to_char: Whether to characterize to character.
             case_sensitive: Whether to be case sensitive.
             remove_tag: Whether to remove the tags.
+            ignore_punctuation: Whether to ignore punctuation (except single quotes).
             ignore_words: The words to ignore.
         """
         self.wer = partial(
-            wer, to_char=to_char, case_sensitive=case_sensitive, remove_tag=remove_tag, ignore_words=ignore_words
+            wer,
+            to_char=to_char,
+            case_sensitive=case_sensitive,
+            remove_tag=remove_tag,
+            ignore_words=ignore_words,
+            ignore_punctuation=ignore_punctuation,
         )
         self.clusters = defaultdict(set)
         self.tokens = defaultdict(WER)

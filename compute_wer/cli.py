@@ -40,9 +40,23 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 @click.option("--case-sensitive", "-cs", is_flag=True, help="Use case-sensitive matching.")
 @click.option("--remove-tag", "-rt", is_flag=True, default=True, help="Remove tags from the reference and hypothesis.")
 @click.option("--ignore-file", "-ig", type=click.Path(exists=True, dir_okay=False), help="Path to the ignore file.")
+@click.option("--ignore-punctuation", "-ip", is_flag=True, help="Ignore punctuation (except single quotes).")
 @click.option("--max-wer", "-mw", type=float, default=sys.maxsize, help="Filter hypotheses with WER <= this value.")
 @click.option("--verbose", "-v", is_flag=True, default=True, help="Print verbose output.")
-def main(ref, hyp, output_file, align_to_hyp, char, sort, case_sensitive, remove_tag, ignore_file, max_wer, verbose):
+def main(
+    ref,
+    hyp,
+    output_file,
+    align_to_hyp,
+    char,
+    sort,
+    case_sensitive,
+    remove_tag,
+    ignore_file,
+    ignore_punctuation,
+    max_wer,
+    verbose,
+):
     input_is_file = os.path.exists(ref)
     assert os.path.exists(hyp) == input_is_file
 
@@ -52,7 +66,7 @@ def main(ref, hyp, output_file, align_to_hyp, char, sort, case_sensitive, remove
             word = line.strip()
             if len(word) > 0:
                 ignore_words.add(word if case_sensitive else word.upper())
-    calculator = Calculator(char, case_sensitive, remove_tag, ignore_words, max_wer)
+    calculator = Calculator(char, case_sensitive, remove_tag, ignore_words, ignore_punctuation, max_wer)
 
     wers = []
     if input_is_file:

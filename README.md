@@ -14,6 +14,7 @@ A Python package for computing Word Error Rate (WER) and Sentence Error Rate (SE
 - Cluster-based error analysis (Chinese, English, Numbers, etc.)
 - Support for filtering results based on maximum WER threshold
 - Handle tagged text with option to remove tags
+- Support for ignoring punctuation in WER calculation
 
 ## Installation
 
@@ -76,6 +77,9 @@ compute-wer --max-wer 0.5 ref.txt hyp.txt
 
 # Ignore specific words from a file
 compute-wer --ignore-file ignore_words.txt ref.txt hyp.txt
+
+# Ignore punctuation (except single quotes)
+compute-wer --ignore-punctuation ref.txt hyp.txt
 ```
 
 ### Python API
@@ -88,6 +92,7 @@ calculator = Calculator(
     to_char=False,          # Character-level WER
     case_sensitive=False,   # Case-sensitive matching
     remove_tag=True,        # Remove tags from text
+    ignore_punctuation=True,# Ignore punctuation (except single quotes)
     max_wer=float('inf')    # Maximum WER threshold
 )
 
@@ -106,15 +111,16 @@ for cluster, wer in cluster_wers.items():
 
 ## CLI Options
 
-| Option                    | Description                                       |
-| ------------------------- | ------------------------------------------------- |
-| `--char`, `-c`            | Use character-level WER instead of word-level WER |
-| `--sort`, `-s`            | Sort the hypotheses by utterance-id or WER in ASC |
-| `--case-sensitive`, `-cs` | Use case-sensitive matching                       |
-| `--remove-tag`, `-rt`     | Remove tags from the reference and hypothesis     |
-| `--ignore-file`, `-ig`    | Path to the ignore file                           |
-| `--max-wer`, `-mw`        | Filter hypotheses with WER <= this value          |
-| `--verbose`, `-v`         | Print verbose output                              |
+| Option                        | Description                                       |
+| ----------------------------- | ------------------------------------------------- |
+| `--char`, `-c`                | Use character-level WER instead of word-level WER |
+| `--sort`, `-s`                | Sort the hypotheses by utterance-id or WER in ASC |
+| `--case-sensitive`, `-cs`     | Use case-sensitive matching                       |
+| `--remove-tag`, `-rt`         | Remove tags from the reference and hypothesis     |
+| `--ignore-punctuation`, `-ip` | Ignore punctuation (except single quotes)         |
+| `--ignore-file`, `-ig`        | Path to the ignore file                           |
+| `--max-wer`, `-mw`            | Filter hypotheses with WER <= this value          |
+| `--verbose`, `-v`             | Print verbose output                              |
 
 ## Output Format
 

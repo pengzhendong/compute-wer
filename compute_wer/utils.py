@@ -23,60 +23,94 @@ spacelist = [" ", "\t", "\r", "\n"]
 single_quote = "'"
 
 
-def is_punctuation(char: str) -> bool:
-    """
-    Check if a character is punctuation.
-    """
-    return category(char).startswith(("P", "S"))
+def is_punctuation(char):
+    """Checks if a character is a punctuation mark or a symbol across all languages."""
+    cat = category(char)
+    return cat.startswith("P") or cat.startswith("S")
 
 
-def characterize(text: str, to_char: bool, ignore_punctuation: bool = False) -> List[str]:
+def is_character_based(char):
     """
-    Characterize the text.
+    Identifies languages that are naturally character-based or
+    do not use spaces (non-segmented languages).
+    """
+    cp = ord(char)
+    # 1. CJK (Chinese, Japanese Kanji/Kana)
+    if (0x4E00 <= cp <= 0x9FFF) or (0x3040 <= cp <= 0x30FF):
+        return True
+    # 2. Thai
+    if 0x0E00 <= cp <= 0x0E7F:
+        return True
+    # 3. Lao
+    if 0x0E80 <= cp <= 0x0EFF:
+        return True
+    # 4. Myanmar (Burmese)
+    if 0x1000 <= cp <= 0x109F:
+        return True
+    # 5. Khmer (Cambodian)
+    if 0x1780 <= cp <= 0x17FF:
+        return True
+    # 6. Tibetan
+    if 0x0F00 <= cp <= 0x0FFF:
+        return True
+    return False
 
-    Args:
-        text: The text to characterize.
-        to_char: Whether to characterize to character.
-        ignore_punctuation: Whether to ignore punctuation (except single quotes).
-    Returns:
-        The list of characterized tokens
-    """
+
+def tokenize(text, to_char=False, ignore_punctuation=True):
     res = []
     i = 0
     length = len(text)
+
     while i < length:
         char = text[i]
-        if char in spacelist:
+        cat = category(char)
+        # 1. Skip whitespace or unassigned characters
+        if cat in {"Zs", "Cn"}:
             i += 1
             continue
-
-        # https://unicodebook.readthedocs.io/unicode.html#unicode-categories
-        cat = category(char)
-        if cat in {"Zs", "Cn"}:  # space or not assigned
-            i += 1
-        elif ignore_punctuation and is_punctuation(char) and char != single_quote:
-            i += 1
-        elif cat == "Lo":  # Letter-other (Chinese letter)
+        # 2. Handle Punctuation
+        if is_punctuation(char):
+            if not ignore_punctuation:
+                res.append(char)
+                i += 1
+                continue
+            elif char == single_quote:
+                # Keep it for potential word-internal use (e.g., "it's")
+                pass
+            else:
+                i += 1
+                continue
+        # 3. Handle Character-based scripts (CN, JP, TH, etc.)
+        if is_character_based(char):
             res.append(char)
             i += 1
-        elif to_char and cat.startswith(("L", "N")):
-            res.append(char)
-            i += 1
+        # 4. Handle Alphabetic/Syllabic scripts (EN, KR, RU, etc.)
+        elif cat.startswith(("L", "N")):
+            if to_char:
+                # If to_char is True, treat every letter as a separate token (CER mode)
+                res.append(char)
+                i += 1
+            else:
+                # If to_char is False, group letters into a word (WER mode)
+                j = i + 1
+                while j < length:
+                    next_char = text[j]
+                    next_cat = category(next_char)
+                    # Break if we hit a boundary
+                    if next_cat == "Zs" or is_character_based(next_char):
+                        break
+                    if is_punctuation(next_char) and next_char != single_quote:
+                        break
+                    # Continue grouping if it's a Letter/Number or internal quote
+                    if next_cat.startswith(("L", "N")) or next_char == single_quote:
+                        j += 1
+                    else:
+                        break
+                res.append(text[i:j])
+                i = j
         else:
-            # some input looks like: <unk><noise>, we want to separate it to two words.
-            sep = ">" if char == "<" else " "
-            j = i + 1
-            while j < length:
-                c = text[j]
-                if ord(c) >= 128 or c in spacelist or c == sep:
-                    break
-                if ignore_punctuation and is_punctuation(c) and c != single_quote:
-                    break
-                j += 1
-            if j < length and text[j] == ">":
-                j += 1
-            res.append(text[i:j])
-            i = j
+            # Skip other types of characters
+            i += 1
     return res
 
 
@@ -201,7 +235,7 @@ def normalize(
 
     Args:
         text: The input text.
-        to_char: Whether to characterize to character.
+        to_char: Whether to tokenize to character.
         case_sensitive: Whether to be case sensitive.
         remove_tag: Whether to remove the tags.
         ignore_words: The words to ignore.
@@ -209,7 +243,7 @@ def normalize(
     Returns:
         The list of normalized tokens.
     """
-    tokens = characterize(text, to_char, ignore_punctuation)
+    tokens = tokenize(text, to_char, ignore_punctuation)
     tokens = (strip_tags(token) if remove_tag else token for token in tokens)
     tokens = (token.upper() if not case_sensitive else token for token in tokens)
     if ignore_words is None:
@@ -232,7 +266,7 @@ def wer(
     Args:
         reference: The reference text.
         hypothesis: The hypothesis text.
-        to_char: Whether to characterize to character.
+        to_char: Whether to tokenize to character.
         case_sensitive: Whether to be case sensitive.
         remove_tag: Whether to remove the tags.
         ignore_words: The words to ignore.

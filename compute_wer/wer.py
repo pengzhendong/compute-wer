@@ -16,7 +16,7 @@ from collections import defaultdict
 from typing import List, Optional
 from unicodedata import east_asian_width
 
-from edit_distance import SequenceMatcher
+from compute_wer.alignment import get_opcodes
 
 
 class WER:
@@ -35,10 +35,8 @@ class WER:
             self.hypothesis = []
             self.tokens = defaultdict(WER)
 
-            matcher = SequenceMatcher(reference, hypothesis)
-            for op, i, _, j, _ in matcher.get_opcodes():
+            for op, i, j in get_opcodes(reference, hypothesis):
                 setattr(self, op, getattr(self, op) + 1)
-                # For the cluster WER
                 token = reference[i] if op != "insert" else hypothesis[j]
                 if token not in self.tokens:
                     self.tokens[token] = WER()
